@@ -1,7 +1,7 @@
 INSTALL = install
 CFLAGS = -Wall -g
 LFLAGS =
-OBJS = xm2nes.o xm.o
+OBJS = xm2nes.o xm.o main.o
 
 prefix = /usr/local
 datarootdir = $(prefix)/share

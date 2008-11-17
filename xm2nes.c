@@ -22,40 +22,36 @@
 
 #include "xm.h"
 
-static char program_version[] = "xm2nes 1.0";
+void convert_xm_to_nes(const struct xm *, const char *, FILE *);
 
-/* Prints usage message and exits. */
-static void usage()
+#define SET_EFFECT_COMMAND_BASE 0xE0
+#define SET_INSTRUMENT_COMMAND 0xE8
+#define SET_MASTER_VOLUME_COMMAND 0xEA
+
+/**
+  Prints \a size bytes of data defined by \a buf to \a out.
+*/
+static void print_chunk(FILE *out, const char *label,
+                        const unsigned char *buf, int size, int cols)
 {
-    printf(
-        "Usage: xm2nes [--output=FILE] [--verbose]\n"
-        "              [--help] [--usage] [--version]\n"
-        "              FILE\n");
-    exit(0);
+    int i, j, m;
+    int pos = 0;
+    if (label)
+        fprintf(out, "%s:\n", label);
+    for (i = 0; i < size / cols; ++i) {
+        fprintf(out, ".db ");
+        for (j = 0; j < cols-1; ++j)
+            fprintf(out, "$%.2X,", buf[pos++]);
+        fprintf(out, "$%.2X\n", buf[pos++]);
+    }
+    m = size % cols;
+    if (m > 0) {
+        fprintf(out, ".db ");
+        for (j = 0; j < m-1; ++j)
+            fprintf(out, "$%.2X,", buf[pos++]);
+        fprintf(out, "$%.2X\n", buf[pos++]);
+    }
 }
-
-/* Prints help message and exits. */
-static void help()
-{
-    printf("Usage: xm2nes [OPTION...] FILE\n"
-           "xm2nes converts Fasttracker ][ eXtended Module (XM) files to Kent's NES music format.\n\n"
-           "Options:\n\n"
-           "  --output=FILE                   Store output in FILE\n"
-           "  --verbose                       Print progress information to standard output\n"  
-           "  --help                          Give this help list\n"
-           "  --usage                         Give a short usage message\n"
-           "  --version                       Print program version\n");
-    exit(0);
-}
-
-/* Prints version and exits. */
-static void version()
-{
-    printf("%s\n", program_version);
-    exit(0);
-}
-
-static void print_chunk(FILE *out, const char *label, const unsigned char *buf, int size, int cols);
 
 /**
   Checks if the given \a pattern is empty.
@@ -195,12 +191,12 @@ static void convert_xm_pattern_to_nes(
 			if ((n->volume >= 0x10) && (n->volume < 0x50)) {
 		            /* set new channel volume */
 			    if (n->volume != lastvol) {
-			        data[pos++] = 0xEB;  /* set volume */
+			        data[pos++] = SET_MASTER_VOLUME_COMMAND;
 			        data[pos++] = ((n->volume - 0x10) >> 2) << 4;
 			        lastvol = n->volume;
 			    }
 			} else if (lastvol != 0x50) {
-			    data[pos++] = 0xEB;  /* initialize volume */
+			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
 			    data[pos++] = 0xF0;  /* max */
 			    lastvol = 0x50;
 			}
@@ -208,18 +204,23 @@ static void convert_xm_pattern_to_nes(
                         /* triangle */
 		    case 2:
 			if (n->instrument != lastinstr) {
-			    data[pos++] = 0xE8;  /* set instrument */
+			    data[pos++] = SET_INSTRUMENT_COMMAND;
 			    data[pos++] = (n->instrument - 1) & 0x1F;
 			    lastinstr = n->instrument;
 			}
 			if ((n->effect_type != lastefftype)
 			    || ((n->effect_type == lastefftype)
 				&& (n->effect_param != lasteffparam))) {
-			    data[pos++] = 0xE0 | n->effect_type;  /* set effect */
-			    if (n->effect_type != 0)
-				data[pos++] = n->effect_param;
-			    lastefftype = n->effect_type;
-			    lasteffparam = n->effect_param;
+                            if (n->effect_type >= 8) {
+                        	fprintf(stderr, "ignoring effect %x%.2x in channel %d\n",
+					n->effect_type, n->effect_param, channel);
+                            } else {
+				data[pos++] = SET_EFFECT_COMMAND_BASE | n->effect_type;
+			        if (n->effect_type != 0)
+				    data[pos++] = n->effect_param;
+			        lastefftype = n->effect_type;
+			        lasteffparam = n->effect_param;
+			    }
 			}
 			data[pos++] = n->note - 15; /* ### don't hardcode */
 			break;
@@ -229,13 +230,13 @@ static void convert_xm_pattern_to_nes(
 			    && (n->volume < 0x50)) {
 			    /* set new channel volume */
 			    if (n->volume != lastvol) {
-				data[pos++] = 0xEB;  /* set volume */
+				data[pos++] = SET_MASTER_VOLUME_COMMAND;
 				data[pos++] = ((n->volume - 0x10) >> 2) << 4;
 				lastvol = n->volume;
 			    }
 			}
 			else if (lastvol != 0x50) {
-			    data[pos++] = 0xEB;
+			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
 			    data[pos++] = 0xF0;
 			    lastvol = 0x50;
 			}
@@ -264,7 +265,7 @@ static void convert_xm_pattern_to_nes(
   Converts the given \a xm to NES format; writes the 6502 assembly
   language representation of the song to \a out.
 */
-void convert_xm_to_nes(const struct xm *xm, FILE *out)
+void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
 {
     int chn;
     unsigned char **unique_pattern_indexes;
@@ -295,9 +296,9 @@ void convert_xm_to_nes(const struct xm *xm, FILE *out)
 	for (i = 0; i < unique_pattern_count[chn]; ++i) {
 	    unsigned char *data;
 	    int data_size;
-	    char label[64];
-	    sprintf(label, "channel%d_pattern%d", chn, i);
+	    char label[256];
 	    convert_xm_pattern_to_nes(&xm->patterns[i], xm->header.channel_count, chn, &data, &data_size);
+	    sprintf(label, "%schn%d_ptn%d", label_prefix, chn, i);
 	    print_chunk(out, label, data, data_size, 16);
 	    free(data);
 	}
@@ -307,7 +308,7 @@ void convert_xm_to_nes(const struct xm *xm, FILE *out)
     }
 
     /* Step 2. Print the pattern pointer table. */
-    fprintf(out, "pattern_table:\n");
+    fprintf(out, "%spattern_table:\n", label_prefix);
     for (chn = 0; chn < xm->header.channel_count; ++chn) {
 	int i;
 	if ((unique_pattern_count[chn] == 1)
@@ -316,11 +317,11 @@ void convert_xm_to_nes(const struct xm *xm, FILE *out)
 	    continue;
 	}
 	for (i = 0; i < unique_pattern_count[chn]; ++i)
-	    fprintf(out, ".dw channel%d_pattern%d\n", chn, i);
+	    fprintf(out, ".dw %schn%d_ptn%d\n", label_prefix, chn, i);
     }
 
     /* Step 3. Print song header + order tables. */
-    fprintf(out, "song:\n");
+    fprintf(out, "%ssong:\n", label_prefix);
     {
 	int pattern_offset = 0;
 	int order_offset = 0;
@@ -336,7 +337,7 @@ void convert_xm_to_nes(const struct xm *xm, FILE *out)
 		order_offset += xm->header.song_length + 2;
 	    }
 	}
-	fprintf(out, ".dw pattern_table\n");
+	fprintf(out, ".dw %spattern_table\n", label_prefix);
 	order_offset = 0;
 	for (chn = 0; chn < xm->header.channel_count; ++chn) {
 	    int i;
@@ -365,111 +366,4 @@ void convert_xm_to_nes(const struct xm *xm, FILE *out)
     free(unique_pattern_indexes);
     free(unique_pattern_count);
     free(order_data);
-}
-
-/**
-  Program entrypoint.
-*/
-int main(int argc, char *argv[])
-{
-    int verbose = 0;
-    const char *input_filename = 0;
-    const char *output_filename = 0;
-    /* Process arguments. */
-    {
-        char *p;
-        while ((p = *(++argv))) {
-            if (!strncmp("--", p, 2)) {
-                const char *opt = &p[2];
-                if (!strncmp("output=", opt, 7)) {
-                    output_filename = &opt[7];
-                } else if (!strcmp("verbose", opt)) {
-                    verbose = 1;
-                } else if (!strcmp("help", opt)) {
-                    help();
-                } else if (!strcmp("usage", opt)) {
-                    usage();
-                } else if (!strcmp("version", opt)) {
-                    version();
-                } else {
-                    fprintf(stderr, "xm2nes: unrecognized option `%s'\n"
-			    "Try `xm2nes --help' or `xm2nes --usage' for more information.\n", p);
-                    return(-1);
-                }
-            } else {
-                input_filename = p;
-            }
-        }
-    }
-
-    if (!input_filename) {
-        fprintf(stderr, "xm2nes: no filename given\n"
-                        "Try `xm2nes --help' or `xm2nes --usage' for more information.\n");
-        return(-1);
-    }
-
-    {
-        struct xm xm;
-        FILE *out;
-        if (!output_filename)
-            out = stdout;
-        else {
-            out = fopen(output_filename, "wt");
-            if (!out) {
-                fprintf(stderr, "xm2nes: failed to open `%s' for writing\n", output_filename);
-                return(-1);
-            }
-        }
-
-        {
-            FILE *in;
-            in = fopen(input_filename, "rb");
-            if (!in) {
-                fprintf(stderr, "xm2nes: failed to open `%s' for reading\n", input_filename);
-                return(-1);
-            }
-            if (verbose)
-                fprintf(stdout, "Reading `%s'...\n", input_filename);
-            xm_read(in, &xm);
-            if (verbose)
-                fprintf(stdout, "OK.\n");
-        }
-
-        if (verbose)
-            xm_print_header(&xm.header, stdout);
-
-        if (verbose)
-            fprintf(stdout, "Converting...\n");
-        convert_xm_to_nes(&xm, out);
-        if (verbose)
-            fprintf(stdout, "Done.\n");
-
-        xm_destroy(&xm);
-    }
-    return 0;
-}
-
-/**
-  Prints \a size bytes of data defined by \a buf to \a out.
-*/
-void print_chunk(FILE *out, const char *label,
-                 const unsigned char *buf, int size, int cols)
-{
-    int i, j, m;
-    int pos = 0;
-    if (label)
-        fprintf(out, "%s:\n", label);
-    for (i = 0; i < size / cols; ++i) {
-        fprintf(out, ".db ");
-        for (j = 0; j < cols-1; ++j)
-            fprintf(out, "$%.2X,", buf[pos++]);
-        fprintf(out, "$%.2X\n", buf[pos++]);
-    }
-    m = size % cols;
-    if (m > 0) {
-        fprintf(out, ".db ");
-        for (j = 0; j < m-1; ++j)
-            fprintf(out, "$%.2X,", buf[pos++]);
-        fprintf(out, "$%.2X\n", buf[pos++]);
-    }
 }
