@@ -145,7 +145,7 @@ int xm_read(FILE *fp, struct xm *xm)
     return XM_NO_ERROR;
 }
 
-void xm_print_header(struct xm_header *head, FILE *fp)
+void xm_print_header(const struct xm_header *head, FILE *fp)
 {
     {
         char tmp[21];
@@ -164,6 +164,18 @@ void xm_print_header(struct xm_header *head, FILE *fp)
     fprintf(fp, "Flags: %d\n", head->flags);
     fprintf(fp, "Default tempo: %d\n", head->default_tempo);
     fprintf(fp, "Default BPM: %d\n", head->default_bpm);
+}
+
+void xm_print_pattern(const struct xm *xm, int pindex, FILE *fp)
+{
+    int row;
+    const struct xm_pattern *pat = &xm->patterns[pindex];
+    for (row = 0; row < pat->row_count; ++row) {
+        const struct xm_pattern_slot *slot = &pat->data[row * xm->header.channel_count];
+        fprintf(fp, "%.2x: %.2x %.2x %.2x %.2x %.2x\n",
+                row, slot->note, slot->instrument, slot->volume,
+                slot->effect_type, slot->effect_param);
+    }
 }
 
 void xm_destroy(struct xm *xm)

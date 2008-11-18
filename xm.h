@@ -63,7 +63,8 @@ struct xm {
 #define XM_PREMATURE_END_OF_FILE_ERROR 4
 
 int xm_read(FILE *, struct xm *);
-void xm_print_header(struct xm_header *, FILE *);
+void xm_print_header(const struct xm_header *, FILE *);
+void xm_print_pattern(const struct xm *, int, FILE *);
 void xm_destroy(struct xm *);
 
 #endif

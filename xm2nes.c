@@ -282,14 +282,29 @@ void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
 	unique_pattern_indexes[chn] = (unsigned char *)malloc(xm->header.pattern_count * sizeof(unsigned char));
 	find_unique_patterns_for_channel(xm, chn, unique_pattern_indexes[chn], &unique_pattern_count[chn]);
 
-	if ((unique_pattern_count[chn] == 1)
-	    && is_pattern_empty_for_channel(&xm->patterns[0], xm->header.channel_count, chn)) {
-	    /* Channel is unused. */
-	    continue;
-	}
+        {
+            int j;
+            int has_non_empty_pattern = 0;
+            for (j = 0; j < unique_pattern_count[chn]; ++j) {
+                int pi = unique_pattern_indexes[chn][j];
+	        if (!is_pattern_empty_for_channel(&xm->patterns[pi], xm->header.channel_count, chn)) {
+                    has_non_empty_pattern = 1;
+                    break;
+                }
+            }
+            if (!has_non_empty_pattern) {
+                /* Channel is unused. */
+                continue;
+            }
+        }
 
 	if (chn >= 5) {
-	    fprintf(stderr, "ignoring contents of channel %d\n", chn);
+            int j;
+            for (j = 0; j < unique_pattern_count[chn]; ++j) {
+                int pi = unique_pattern_indexes[chn][j];
+                fprintf(stderr, " %d", pi);
+            }
+            fprintf(stderr, "\n");
 	    continue;
 	}
 
