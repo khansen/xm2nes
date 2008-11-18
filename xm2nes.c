@@ -122,7 +122,7 @@ static void find_unique_patterns_for_channel(
                 break;
             }
         }
-        if (j == i)
+        if (j == *unique_pattern_count)
             unique_pattern_indexes[(*unique_pattern_count)++] = i;
     }
 }
