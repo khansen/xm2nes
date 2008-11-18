@@ -268,11 +268,13 @@ static void convert_xm_pattern_to_nes(
 void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
 {
     int chn;
+    int unused_channels;
     unsigned char **unique_pattern_indexes;
     int *unique_pattern_count;
     unsigned char *order_data;
     if (xm->header.song_length == 0)
         return;
+    unused_channels = 0;
     unique_pattern_indexes = (unsigned char **)malloc(xm->header.channel_count * sizeof(unsigned char *));
     unique_pattern_count = (int *)malloc(xm->header.channel_count * sizeof(int));
     order_data = (unsigned char *)malloc(xm->header.channel_count * xm->header.song_length * sizeof(unsigned char));
@@ -293,16 +295,18 @@ void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
                 }
             }
             if (!has_non_empty_pattern) {
-                /* Channel is unused. */
+                unused_channels |= 1 << chn;
                 continue;
             }
         }
 
 	if (chn >= 5) {
             int j;
+           fprintf(stderr, "ignoring contents of channel %d; patterns \n", chn);
             for (j = 0; j < unique_pattern_count[chn]; ++j) {
                 int pi = unique_pattern_indexes[chn][j];
-                fprintf(stderr, " %d", pi);
+	        if (!is_pattern_empty_for_channel(&xm->patterns[pi], xm->header.channel_count, chn))
+                    fprintf(stderr, " %d", pi);
             }
             fprintf(stderr, "\n");
 	    continue;
@@ -326,11 +330,8 @@ void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
     fprintf(out, "%spattern_table:\n", label_prefix);
     for (chn = 0; chn < xm->header.channel_count; ++chn) {
 	int i;
-	if ((unique_pattern_count[chn] == 1)
-	    && is_pattern_empty_for_channel(&xm->patterns[0], xm->header.channel_count, chn)) {
-	    /* Channel is unused. */
-	    continue;
-	}
+        if (unused_channels & (1 << chn))
+            continue;
 	for (i = 0; i < unique_pattern_count[chn]; ++i)
 	    fprintf(out, ".dw %schn%d_ptn%d\n", label_prefix, chn, i);
     }
@@ -343,9 +344,7 @@ void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
 	for (chn = 0; chn < xm->header.channel_count; ++chn) {
 	    if (chn >= 5)
 		break;
-	    if ((unique_pattern_count[chn] == 1)
-		&& is_pattern_empty_for_channel(&xm->patterns[0], xm->header.channel_count, chn)) {
-		/* Channel is unused. */
+	    if (unused_channels & (1 << chn)) {
 		fprintf(out, ".db $FF\n");
 	    } else {
 		fprintf(out, ".db %d,%d\n", order_offset, xm->header.default_tempo);
@@ -358,11 +357,8 @@ void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
 	    int i;
 	    if (chn >= 5)
 		break;
-	    if ((unique_pattern_count[chn] == 1)
-		&& is_pattern_empty_for_channel(&xm->patterns[0], xm->header.channel_count, chn)) {
-		/* Channel is unused. */
+	    if (unused_channels & (1 << chn))
 		continue;
-	    }
 	    fprintf(out, ".db ");
 	    for (i = 0; i < xm->header.song_length; ++i) {
 		if (i > 0)
