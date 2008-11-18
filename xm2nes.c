@@ -26,7 +26,9 @@ void convert_xm_to_nes(const struct xm *, const char *, FILE *);
 
 #define SET_EFFECT_COMMAND_BASE 0xE0
 #define SET_INSTRUMENT_COMMAND 0xE8
+#define RELEASE_COMMAND 0xE9
 #define SET_MASTER_VOLUME_COMMAND 0xEA
+#define END_ROW_COMMAND 0xEB
 
 /**
   Prints \a size bytes of data defined by \a buf to \a out.
@@ -155,9 +157,8 @@ static void calculate_order_table_for_channel(
 /**
   Converts the \a channel of the given \a pattern to NES format.
 */
-static void convert_xm_pattern_to_nes(
-    const struct xm_pattern *pattern, int channel_count,
-    int channel, unsigned char **out, int *out_size)
+static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int channel_count,
+				      int channel, unsigned char **out, int *out_size)
 {
     unsigned char lastinstr = 0xFF;
     unsigned char lastvol = 0xFF;
@@ -176,83 +177,91 @@ static void convert_xm_pattern_to_nes(
 	/* calculate active rows byte */
 	unsigned char flags = 0;
 	for (i = 0; i < 8; ++i) {
-	    if (slots[(row+i)*channel_count].note != 0)
+            const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
+	    if ((n->note != 0) || (n->effect_type != 0) || (n->effect_param != 0))
 		flags |= 1 << i;
 	}
 	data[pos++] = flags;
 	/* flags are followed by the actual note+effect data for these 8 rows */
 	for (i = 0; i < 8; ++i) {
 	    const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
-	    if (n->note != 0) {
-		switch (channel) {
-		    /* square */
-		    case 0:
-		    case 1:
-			if ((n->volume >= 0x10) && (n->volume < 0x50)) {
-		            /* set new channel volume */
-			    if (n->volume != lastvol) {
-			        data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			        data[pos++] = ((n->volume - 0x10) >> 2) << 4;
-			        lastvol = n->volume;
-			    }
-			} else if (lastvol != 0x50) {
+	    if (!(flags & (1 << i)))
+                continue;
+            switch (channel) {
+		/* square */
+		case 0:
+		case 1:
+	    	    if ((n->volume >= 0x10) && (n->volume < 0x50)) {
+		        /* set new channel volume */
+			if (n->volume != lastvol) {
 			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			    data[pos++] = 0xF0;  /* max */
-			    lastvol = 0x50;
+			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
+			    lastvol = n->volume;
 			}
-		        /* fallthrough */
-                        /* triangle */
-		    case 2:
-			if (n->instrument != lastinstr) {
-			    data[pos++] = SET_INSTRUMENT_COMMAND;
-			    data[pos++] = (n->instrument - 1) & 0x1F;
-			    lastinstr = n->instrument;
+		    } else if (lastvol != 0x50) {
+			data[pos++] = SET_MASTER_VOLUME_COMMAND;
+			data[pos++] = 0xF0;  /* max */
+			lastvol = 0x50;
+		    }
+		    /* fallthrough */
+                    /* triangle */
+		case 2:
+		    if (n->instrument && (n->instrument != lastinstr)) {
+			data[pos++] = SET_INSTRUMENT_COMMAND;
+			data[pos++] = (n->instrument - 1) & 0x1F;
+			lastinstr = n->instrument;
+		    }
+		    if ((n->effect_type != lastefftype)
+			|| ((n->effect_type == lastefftype)
+			    && (n->effect_param != lasteffparam))) {
+			if (n->effect_type >= 8) {
+			    fprintf(stderr, "ignoring effect %x%.2x in channel %d\n",
+				    n->effect_type, n->effect_param, channel);
+			} else {
+			    data[pos++] = SET_EFFECT_COMMAND_BASE | n->effect_type;
+                            if (n->effect_param != 0)
+       			        lasteffparam = n->effect_param;
+			    if (n->effect_type != 0)
+				data[pos++] = lasteffparam;
+			    lastefftype = n->effect_type;
 			}
-			if ((n->effect_type != lastefftype)
-			    || ((n->effect_type == lastefftype)
-				&& (n->effect_param != lasteffparam))) {
-                            if (n->effect_type >= 8) {
-                        	fprintf(stderr, "ignoring effect %x%.2x in channel %d\n",
-					n->effect_type, n->effect_param, channel);
-                            } else {
-				data[pos++] = SET_EFFECT_COMMAND_BASE | n->effect_type;
-			        if (n->effect_type != 0)
-				    data[pos++] = n->effect_param;
-			        lastefftype = n->effect_type;
-			        lasteffparam = n->effect_param;
-			    }
-			}
-			data[pos++] = n->note - 15; /* ### don't hardcode */
-			break;
-			/* noise */
-		    case 3:
-			if ((n->volume >= 0x10)
-			    && (n->volume < 0x50)) {
-			    /* set new channel volume */
-			    if (n->volume != lastvol) {
-				data[pos++] = SET_MASTER_VOLUME_COMMAND;
-				data[pos++] = ((n->volume - 0x10) >> 2) << 4;
-				lastvol = n->volume;
-			    }
-			}
-			else if (lastvol != 0x50) {
+		    }
+                    if (n->note != 0)
+    	                data[pos++] = n->note - 15; /* ### don't hardcode the displacement */
+                    else
+                        data[pos++] = END_ROW_COMMAND;
+		    break;
+		    /* noise */
+		case 3:
+		    if ((n->volume >= 0x10)
+			&& (n->volume < 0x50)) {
+			/* set new channel volume */
+			if (n->volume != lastvol) {
 			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			    data[pos++] = 0xF0;
-			    lastvol = 0x50;
+			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
+			    lastvol = n->volume;
 			}
-			data[pos++] = n->instrument - 0x31; /* ### don't hardcode */
-			break;
-			/* dpcm */
-		    case 4:
-			/* ### don't hardcode the sample mapping */
-			if (n->instrument == 0x39)
-			    data[pos++] = 0x1B; /* bassdrum */
-			else if (n->instrument == 0x3A)
-			    data[pos++] = 0x1C; /* combined bassdrum+snare */
-			else if (n->instrument == 0x3B)
-			    data[pos++] = n->note - 49; /* bass note */
-			break;
-		}
+		    }
+		    else if (lastvol != 0x50) {
+			data[pos++] = SET_MASTER_VOLUME_COMMAND;
+			data[pos++] = 0xF0;
+			lastvol = 0x50;
+		    }
+                    if (n->note != 0)
+		        data[pos++] = n->instrument - 0x31; /* ### don't hardcode the displacement */
+                    else
+                        data[pos++] = END_ROW_COMMAND;
+		    break;
+		    /* dpcm */
+		case 4:
+		    /* ### don't hardcode the sample mapping */
+		    if (n->instrument == 0x39)
+			data[pos++] = 0x1B; /* bassdrum */
+		    else if (n->instrument == 0x3A)
+			data[pos++] = 0x1C; /* combined bassdrum+snare */
+		    else if (n->instrument == 0x3B)
+			data[pos++] = n->note - 49; /* bass note */
+		    break;
 	    }
 	}
     }
