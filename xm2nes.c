@@ -161,7 +161,7 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 				      int channel, unsigned char **out, int *out_size)
 {
     unsigned char lastinstr = 0xFF;
-    unsigned char lastvol = 0xFF;
+    unsigned char lastvol = 0xF0;
     unsigned char lastefftype = 0x00;
     unsigned char lasteffparam = 0x00;
     const struct xm_pattern_slot *slots = &pattern->data[channel];
@@ -174,15 +174,48 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
     /* process channel in 8-row chunks */
     for (row = 0; row < pattern->row_count; row += 8) {
 	int i;
+        unsigned char copy[4];
+        copy[0] = lastinstr;
+        copy[1] = lastvol;
+        copy[2] = lastefftype;
+        copy[3] = lasteffparam;
 	/* calculate active rows byte */
 	unsigned char flags = 0;
 	for (i = 0; i < 8; ++i) {
             const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
-	    if ((n->note != 0) || (n->effect_type != 0) || (n->effect_param != 0))
+	    if (n->note != 0) {
 		flags |= 1 << i;
+	    } else if ((n->instrument != 0) && (n->instrument != lastinstr)) {
+		lastinstr = n->instrument;
+		flags |= 1 << i;
+	    } else if (n->volume != 0) {
+		if ((n->volume >= 0x10) && (n->volume < 0x50)
+		    && ((n->volume >> 2) != (lastvol >> 2))) {
+		    lastvol = n->volume;
+		    if ((channel == 2) || (channel == 4))
+			fprintf(stderr, "volume channel bytes are ignored for channel 2 and 4\n");
+		    else
+			flags |= 1 << i;
+		}
+	    } else if ((n->effect_type != lastefftype)
+		       || ((n->effect_param != lasteffparam)
+			   && (n->effect_param != 0))) {
+		if (n->effect_param != 0)
+		    lasteffparam = n->effect_param;
+		lastefftype = n->effect_type;
+		if ((channel == 3) || (channel == 4))
+		    fprintf(stderr, "effects are ignored for channel 2 and 4\n");
+		else
+		    flags |= 1 << i;
+	    }
 	}
 	data[pos++] = flags;
+
 	/* flags are followed by the actual note+effect data for these 8 rows */
+        lastinstr = copy[0];
+        lastvol = copy[1];
+        lastefftype = copy[2];
+        lasteffparam = copy[3];
 	for (i = 0; i < 8; ++i) {
 	    const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
 	    if (!(flags & (1 << i)))
@@ -191,29 +224,24 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		/* square */
 		case 0:
 		case 1:
-	    	    if ((n->volume >= 0x10) && (n->volume < 0x50)) {
+	    	    if ((n->volume >= 0x10) && (n->volume < 0x50)
+			&& ((n->volume >> 2) != (lastvol >> 2))) {
 		        /* set new channel volume */
-			if (n->volume != lastvol) {
-			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
-			    lastvol = n->volume;
-			}
-		    } else if (lastvol != 0x50) {
 			data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			data[pos++] = 0xF0;  /* max */
-			lastvol = 0x50;
+			data[pos++] = ((n->volume - 0x10) >> 2) << 4;
+			lastvol = n->volume;
 		    }
 		    /* fallthrough */
                     /* triangle */
 		case 2:
 		    if (n->instrument && (n->instrument != lastinstr)) {
 			data[pos++] = SET_INSTRUMENT_COMMAND;
-			data[pos++] = (n->instrument - 1) & 0x1F;
+			data[pos++] = (n->instrument - 1) & 0x1F; /* ### don't hardcode displacement */
 			lastinstr = n->instrument;
 		    }
 		    if ((n->effect_type != lastefftype)
-			|| ((n->effect_type == lastefftype)
-			    && (n->effect_param != lasteffparam))) {
+			|| ((n->effect_param != lasteffparam)
+			    && (n->effect_param != 0))) {
 			if (n->effect_type >= 8) {
 			    fprintf(stderr, "ignoring effect %x%.2x in channel %d\n",
 				    n->effect_type, n->effect_param, channel);
@@ -233,19 +261,12 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		    break;
 		    /* noise */
 		case 3:
-		    if ((n->volume >= 0x10)
-			&& (n->volume < 0x50)) {
+		    if ((n->volume >= 0x10) && (n->volume < 0x50)
+			&& ((n->volume >> 2) != (lastvol >> 2))) {
 			/* set new channel volume */
-			if (n->volume != lastvol) {
-			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
-			    lastvol = n->volume;
-			}
-		    }
-		    else if (lastvol != 0x50) {
 			data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			data[pos++] = 0xF0;
-			lastvol = 0x50;
+			data[pos++] = ((n->volume - 0x10) >> 2) << 4;
+			lastvol = n->volume;
 		    }
                     if (n->note != 0)
 		        data[pos++] = n->instrument - 0x31; /* ### don't hardcode the displacement */
