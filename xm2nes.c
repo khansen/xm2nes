@@ -325,7 +325,8 @@ void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
 	    unsigned char *data;
 	    int data_size;
 	    char label[256];
-	    convert_xm_pattern_to_nes(&xm->patterns[i], xm->header.channel_count, chn, &data, &data_size);
+            int pi = unique_pattern_indexes[chn][i];
+	    convert_xm_pattern_to_nes(&xm->patterns[pi], xm->header.channel_count, chn, &data, &data_size);
 	    sprintf(label, "%schn%d_ptn%d", label_prefix, chn, i);
 	    print_chunk(out, label, data, data_size, 16);
 	    free(data);
