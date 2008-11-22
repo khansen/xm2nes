@@ -222,12 +222,14 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		/* square */
 		case 0:
 		case 1:
-	    	    if ((n->volume >= 0x10) && (n->volume < 0x50)
-			&& ((n->volume >> 2) != (lastvol >> 2))) {
-		        /* set new channel volume */
-			data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			data[pos++] = ((n->volume - 0x10) >> 2) << 4;
-			lastvol = n->volume;
+		    if (n->volume != 0) {
+			if ((n->volume >= 0x10) && (n->volume < 0x50)
+			    && ((n->volume >> 2) != (lastvol >> 2))) {
+			    /* set new channel volume */
+			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
+			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
+			    lastvol = n->volume;
+			}
 		    }
 		    /* fallthrough */
                     /* triangle */
@@ -266,19 +268,27 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 				break;
 			}
 		    }
-                    if (n->note != 0)
+                    if (n->note != 0) {
+			if ((n->volume == 0) && (lastvol != 0xF0)) {
+			    /* set max volume */
+			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
+			    data[pos++] = 0xF0;
+			    lastvol = 0xF0;
+			}
     	                data[pos++] = n->note - 15; /* ### don't hardcode the displacement */
-                    else
+		    } else
                         data[pos++] = END_ROW_COMMAND;
 		    break;
 		    /* noise */
 		case 3:
-		    if ((n->volume >= 0x10) && (n->volume < 0x50)
-			&& ((n->volume >> 2) != (lastvol >> 2))) {
-			/* set new channel volume */
-			data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			data[pos++] = ((n->volume - 0x10) >> 2) << 4;
-			lastvol = n->volume;
+		    if (n->volume != 0) {
+			if ((n->volume >= 0x10) && (n->volume < 0x50)
+			    && ((n->volume >> 2) != (lastvol >> 2))) {
+			    /* set new channel volume */
+			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
+			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
+			    lastvol = n->volume;
+			}
 		    }
 		    if ((n->effect_type != lastefftype)
 			|| ((n->effect_param != lasteffparam)
@@ -296,9 +306,15 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 				break;
 			}
 		    }
-                    if (n->note != 0)
+                    if (n->note != 0) {
+			if ((n->volume == 0) && (lastvol != 0xF0)) {
+			    /* set max volume */
+			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
+			    data[pos++] = 0xF0;
+			    lastvol = 0xF0;
+			}
 		        data[pos++] = n->instrument - 0x31; /* ### don't hardcode the displacement */
-                    else
+                    } else
                         data[pos++] = END_ROW_COMMAND;
 		    break;
 		    /* dpcm */
