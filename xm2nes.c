@@ -25,11 +25,11 @@
 void convert_xm_to_nes(const struct xm *, const char *, FILE *);
 
 #define SET_EFFECT_COMMAND_BASE 0xE0
-#define SET_INSTRUMENT_COMMAND 0xE8
-#define RELEASE_COMMAND 0xE9
-#define SET_MASTER_VOLUME_COMMAND 0xEA
-#define SET_SPEED_COMMAND 0xEB
-#define END_ROW_COMMAND 0xEC
+#define SET_INSTRUMENT_COMMAND 0xF0
+#define RELEASE_COMMAND 0xF1
+#define SET_MASTER_VOLUME_COMMAND 0xF2
+#define SET_SPEED_COMMAND 0xF3
+#define END_ROW_COMMAND 0xF4
 
 /**
   Prints \a size bytes of data defined by \a buf to \a out.
@@ -249,13 +249,18 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    case 0x3:
 			    case 0x4:
 			    case 0x5:
-				data[pos++] = SET_EFFECT_COMMAND_BASE | n->effect_type;
+                            case 0xA: {
+                                unsigned char tp = n->effect_type;
+                                if (tp == 0xA)
+				    tp = 6;
+				data[pos++] = SET_EFFECT_COMMAND_BASE | tp;
 				if ((n->effect_param != 0) || (n->effect_type == 0))
 				    lasteffparam = n->effect_param;
 				if (n->effect_type != 0)
 				    data[pos++] = lasteffparam;
 				lastefftype = n->effect_type;
 				break;
+			    }
 			    case 0xF:
 				data[pos++] = SET_SPEED_COMMAND;
 				data[pos++] = n->effect_param;
