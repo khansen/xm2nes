@@ -258,9 +258,12 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 				    lasteffparam = n->effect_param;
 				if (n->effect_type != 0)
 				    data[pos++] = lasteffparam;
-				lastefftype = n->effect_type;
 				break;
 			    }
+                            case 0xC:
+				data[pos++] = SET_MASTER_VOLUME_COMMAND;
+				data[pos++] = n->effect_param << 2;
+				break;
 			    case 0xF:
 				data[pos++] = SET_SPEED_COMMAND;
 				data[pos++] = n->effect_param;
@@ -272,6 +275,7 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 				lasteffparam = n->effect_param;
 				break;
 			}
+			lastefftype = n->effect_type;
 		    }
                     if (n->note != 0) {
 			if ((n->volume == 0) && (lastvol != 0xF0)) {
@@ -299,6 +303,10 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			|| ((n->effect_param != lasteffparam)
 			    && (n->effect_param != 0))) {
                         switch (n->effect_type) {
+                            case 0xC:
+				data[pos++] = SET_MASTER_VOLUME_COMMAND;
+				data[pos++] = n->effect_param << 2;
+				break;
 			    case 0xF:
 				data[pos++] = SET_SPEED_COMMAND;
 				data[pos++] = n->effect_param;
@@ -306,10 +314,11 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    default:
 				fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
 					n->effect_type, n->effect_param, channel, row+i);
-				lastefftype = n->effect_type;
-				lasteffparam = n->effect_param;
 				break;
 			}
+			lastefftype = n->effect_type;
+                        if (n->effect_param != 0)
+			    lasteffparam = n->effect_param;
 		    }
                     if (n->note != 0) {
 			if ((n->volume == 0) && (lastvol != 0xF0)) {
