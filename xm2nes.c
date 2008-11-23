@@ -285,7 +285,12 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    data[pos++] = 0xF0;
 			    lastvol = 0xF0;
 			}
-    	                data[pos++] = n->note - 15; /* ### don't hardcode the displacement */
+                        if (n->note == 0x61) {
+			    data[pos++] = RELEASE_COMMAND;
+			    data[pos++] = END_ROW_COMMAND;
+			} else {
+			    data[pos++] = n->note - 15; /* ### don't hardcode the displacement */
+			}
 		    } else
                         data[pos++] = END_ROW_COMMAND;
 		    break;
@@ -330,7 +335,12 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    data[pos++] = 0xF0;
 			    lastvol = 0xF0;
 			}
-		        data[pos++] = n->instrument - 0x31; /* ### don't hardcode the displacement */
+                        if (n->note == 0x61) {
+			    data[pos++] = RELEASE_COMMAND;
+			    data[pos++] = END_ROW_COMMAND;
+			} else {
+			    data[pos++] = n->instrument - 0x31; /* ### don't hardcode the displacement */
+			}
                     } else
                         data[pos++] = END_ROW_COMMAND;
 		    break;
