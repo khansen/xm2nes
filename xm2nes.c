@@ -249,6 +249,7 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    case 0x3:
 			    case 0x4:
 			    case 0x5:
+			    case 0x7:
                             case 0xA: {
                                 unsigned char tp = n->effect_type;
                                 if (tp == 0xA)
@@ -303,6 +304,8 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			|| ((n->effect_param != lasteffparam)
 			    && (n->effect_param != 0))) {
                         switch (n->effect_type) {
+			    case 0:
+				break;
                             case 0xC:
 				data[pos++] = SET_MASTER_VOLUME_COMMAND;
 				data[pos++] = n->effect_param << 2;
