@@ -450,7 +450,7 @@ void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
 	    if (unused_channels & (1 << chn)) {
 		fprintf(out, ".db $FF\n");
 	    } else {
-		fprintf(out, ".db %d,%d\n", order_offset, xm->header.default_tempo);
+		fprintf(out, ".db %d,%d\n", order_offset, xm->header.default_tempo + 1);
 		order_offset += xm->header.song_length + 2;
 	    }
 	}
