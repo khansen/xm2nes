@@ -162,7 +162,6 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 				      int channel, unsigned char **out, int *out_size)
 {
     unsigned char lastinstr = 0xFF;
-    unsigned char lastvol = 0xF0;
     unsigned char lastefftype = 0x00;
     unsigned char lasteffparam = 0x00;
     const struct xm_pattern_slot *slots = &pattern->data[channel];
@@ -175,11 +174,10 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
     /* process channel in 8-row chunks */
     for (row = 0; row < pattern->row_count; row += 8) {
 	int i;
-        unsigned char copy[4];
+        unsigned char copy[3];
         copy[0] = lastinstr;
-        copy[1] = lastvol;
-        copy[2] = lastefftype;
-        copy[3] = lasteffparam;
+        copy[1] = lastefftype;
+        copy[2] = lasteffparam;
 	/* calculate active rows byte */
 	unsigned char flags = 0;
 	for (i = 0; i < 8; ++i) {
@@ -190,9 +188,7 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		lastinstr = n->instrument;
 		flags |= 1 << i;
 	    } else if (n->volume != 0) {
-		if ((n->volume >= 0x10) && (n->volume < 0x50)
-		    && ((n->volume >> 2) != (lastvol >> 2))) {
-		    lastvol = n->volume;
+		if ((n->volume >= 0x10) && (n->volume < 0x50)) {
 		    if ((channel == 2) || (channel == 4))
 			fprintf(stderr, "volume channel bytes are ignored for channel 2 and 4\n");
 		    else
@@ -211,9 +207,8 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 
 	/* flags are followed by the actual note+effect data for these 8 rows */
         lastinstr = copy[0];
-        lastvol = copy[1];
-        lastefftype = copy[2];
-        lasteffparam = copy[3];
+        lastefftype = copy[1];
+        lasteffparam = copy[2];
 	for (i = 0; i < 8; ++i) {
 	    const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
 	    if (!(flags & (1 << i)))
@@ -224,12 +219,10 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		case 1:
                 case 3:
 		    if (n->volume != 0) {
-			if ((n->volume >= 0x10) && (n->volume < 0x50)
-			    && ((n->volume >> 2) != (lastvol >> 2))) {
+			if ((n->volume >= 0x10) && (n->volume < 0x50)) {
 			    /* set new channel volume */
 			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
 			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
-			    lastvol = n->volume;
 			}
 		    }
 		    /* fallthrough */
@@ -285,12 +278,6 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			lastefftype = n->effect_type;
 		    }
                     if (n->note != 0) {
-			if ((n->volume == 0) && (lastvol != 0xF0)) {
-			    /* set max volume */
-			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			    data[pos++] = 0xF0;
-			    lastvol = 0xF0;
-			}
                         if (n->note == 0x61) {
 			    data[pos++] = RELEASE_COMMAND;
 			    data[pos++] = END_ROW_COMMAND;
