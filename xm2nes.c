@@ -231,9 +231,10 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		    if (n->instrument && (n->instrument != lastinstr)) {
 			data[pos++] = SET_INSTRUMENT_COMMAND;
                         /* ### don't hardcode displacement */
-                        if (channel == 3)
+                        if (channel == 3) {
+                            assert(n->instrument >= 0x31);
                             data[pos++] = n->instrument - 0x31;
-                        else
+                        } else
 			    data[pos++] = (n->instrument - 1) & 0x1F;
 			lastinstr = n->instrument;
 		    }
@@ -287,6 +288,8 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			        data[pos++] = n->note - 53;
                             else
 			        data[pos++] = n->note - 15;
+                            if (data[pos-1] >= 0x80)
+                                data[pos-1] = 0;
 			}
 		    } else
                         data[pos++] = END_ROW_COMMAND;
