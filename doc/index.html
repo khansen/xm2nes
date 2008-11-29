@@ -10,6 +10,10 @@ Store the output in <em class="parameter"><code>file</code></em>.
 If this option is not specified, the output will be written to
 standard output.
 </p></dd><dt><span class="term">
+<code class="option">--channels</code>=<em class="parameter"><code>channels</code></em>
+</span></dt><dd><p>
+Only process the channels defined by the list of <em class="parameter"><code>channels</code></em>.
+</p></dd><dt><span class="term">
 <code class="option">--verbose</code>
 </span></dt><dd><p>
 Print progress information to standard output.
@@ -25,12 +29,18 @@ Give a short usage message.
 <code class="option">--version</code>
 </span></dt><dd><p>
 Print program version.
-</p></dd></dl></div></div><div class="refsect1" lang="en"><a name="id454529"></a><h2>Files</h2><div class="refsect2" lang="en"><a name="id454534"></a><h3>Output</h3><p>
+</p></dd></dl></div></div><div class="refsect1" lang="en"><a name="id454556"></a><h2>Files</h2><div class="refsect2" lang="en"><a name="id454561"></a><h3>Output</h3><p>
 The output is assembly source code.
-</p></div></div><div class="refsect1" lang="en"><a name="id454545"></a><h2>Examples</h2><p>
+</p></div></div><div class="refsect1" lang="en"><a name="id454573"></a><h2>Examples</h2><p>
 To convert <code class="literal">mysong.xm</code>:
 </p><p>
 <strong class="userinput"><code>
 xm2nes mysong.xm
+</code></strong>
+</p><p>
+To convert only channels 0 and 2 of <code class="literal">mysong.xm</code>:
+</p><p>
+<strong class="userinput"><code>
+xm2nes --channels=0,2 mysong.xm
 </code></strong>
 </p></div></div></body></html>

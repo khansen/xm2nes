@@ -22,7 +22,7 @@
 
 #include "xm.h"
 
-void convert_xm_to_nes(const struct xm *, const char *, FILE *);
+void convert_xm_to_nes(const struct xm *, int, const char *, FILE *);
 
 #define SET_EFFECT_COMMAND_BASE 0xE0
 #define SET_INSTRUMENT_COMMAND 0xF0
@@ -367,7 +367,7 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
   Converts the given \a xm to NES format; writes the 6502 assembly
   language representation of the song to \a out.
 */
-void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
+void convert_xm_to_nes(const struct xm *xm, int channels, const char *label_prefix, FILE *out)
 {
     int chn;
     int unused_channels;
@@ -383,6 +383,11 @@ void convert_xm_to_nes(const struct xm *xm, const char *label_prefix, FILE *out)
     /* Step 1. Find and print unique patterns, and calculate per-channel order tables. */
     for (chn = 0; chn < xm->header.channel_count; ++chn) {
 	int i;
+        if (!((1 << chn) & channels)) {
+            unused_channels |= 1 << chn;
+            continue;
+        }
+
 	unique_pattern_indexes[chn] = (unsigned char *)malloc(xm->header.pattern_count * sizeof(unsigned char));
 	find_unique_patterns_for_channel(xm, chn, unique_pattern_indexes[chn], &unique_pattern_count[chn]);
 

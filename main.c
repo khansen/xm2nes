@@ -22,7 +22,7 @@
 
 #include "xm.h"
 
-extern void convert_xm_to_nes(const struct xm *, const char *, FILE *);
+extern void convert_xm_to_nes(const struct xm *, int, const char *, FILE *);
 
 static char program_version[] = "xm2nes 1.0";
 
@@ -30,7 +30,8 @@ static char program_version[] = "xm2nes 1.0";
 static void usage()
 {
     printf(
-        "Usage: xm2nes [--output=FILE] [--verbose]\n"
+        "Usage: xm2nes [--output=FILE] [--channels=CHANNELS]\n"
+        "              [--verbose]\n"
         "              [--help] [--usage] [--version]\n"
         "              FILE\n");
     exit(0);
@@ -43,6 +44,7 @@ static void help()
            "xm2nes converts Fasttracker ][ eXtended Module (XM) files to Kent's NES music format.\n\n"
            "Options:\n\n"
            "  --output=FILE                   Store output in FILE\n"
+           "  --channels=CHANNELS             Process only CHANNELS (0,1,2,3,4)\n"
            "  --verbose                       Print progress information to standard output\n"  
            "  --help                          Give this help list\n"
            "  --usage                         Give a short usage message\n"
@@ -65,6 +67,7 @@ int main(int argc, char *argv[])
     int verbose = 0;
     const char *input_filename = 0;
     const char *output_filename = 0;
+    int channels = 0x1F;
     /* Process arguments. */
     {
         char *p;
@@ -73,6 +76,19 @@ int main(int argc, char *argv[])
                 const char *opt = &p[2];
                 if (!strncmp("output=", opt, 7)) {
                     output_filename = &opt[7];
+                } else if (!strncmp("channels=", opt, 9)) {
+                    const char *p = &opt[9];
+                    channels = 0;
+                    if (*p) {
+                        channels |= 1 << (*p - '0');
+                        while (*(++p)) {
+                            if (*(p++) != ',')
+                                break;
+                            if (*p)
+                                channels |= 1 << (*p - '0');
+			}
+		    }
+                    channels &= 0x1F;
                 } else if (!strcmp("verbose", opt)) {
                     verbose = 1;
                 } else if (!strcmp("help", opt)) {
@@ -95,6 +111,11 @@ int main(int argc, char *argv[])
     if (!input_filename) {
         fprintf(stderr, "xm2nes: no filename given\n"
                         "Try `xm2nes --help' or `xm2nes --usage' for more information.\n");
+        return(-1);
+    }
+
+    if (!channels) {
+        fprintf(stderr, "xm2nes: --channels argument needs to include at least one channel\n");
         return(-1);
     }
 
@@ -144,7 +165,7 @@ int main(int argc, char *argv[])
             prefix[len+1] = '\0';
             strncpy(prefix, input_filename, len);
 
-            convert_xm_to_nes(&xm, prefix, out);
+            convert_xm_to_nes(&xm, channels, prefix, out);
 
             free(prefix);
         }

@@ -1,11 +1,11 @@
 .\"     Title: xm2nes
 .\"    Author: Kent Hansen
 .\" Generator: DocBook XSL Stylesheets v1.71.1 <http://docbook.sf.net/>
-.\"      Date: 11/16/2008
+.\"      Date: 11/29/2008
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "XM2NES" "1" "11/16/2008" "" ""
+.TH "XM2NES" "1" "11/29/2008" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -26,6 +26,12 @@ reads an eXtended Module (XM) file and converts it to the format used by Kent's 
 .RS 4
 Store the output in
 \fIfile\fR. If this option is not specified, the output will be written to standard output.
+.RE
+.PP
+\fB\-\-channels\fR=\fIchannels\fR
+.RS 4
+Only process the channels defined by the list of
+\fIchannels\fR.
 .RE
 .PP
 \fB\-\-verbose\fR
@@ -58,6 +64,12 @@ mysong.xm:
 .PP
 
 \fB xm2nes mysong.xm \fR
+.PP
+To convert only channels 0 and 2 of
+mysong.xm:
+.PP
+
+\fB xm2nes \-\-channels=0,2 mysong.xm \fR
 .SH "AUTHOR"
 .PP
 \fBKent Hansen\fR

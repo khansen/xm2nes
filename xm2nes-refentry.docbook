@@ -55,6 +55,17 @@ standard output.
 
 <varlistentry>
 <term>
+<option>--channels</option>=<parameter>channels</parameter>
+</term>
+<listitem>
+<para>
+Only process the channels defined by the list of <parameter>channels</parameter>.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>
 <option>--verbose</option>
 </term>
 <listitem>
@@ -118,6 +129,14 @@ To convert <literal>mysong.xm</literal>:
 <para>
 <userinput>
 xm2nes mysong.xm
+</userinput>
+</para>
+<para>
+To convert only channels 0 and 2 of <literal>mysong.xm</literal>:
+</para>
+<para>
+<userinput>
+xm2nes --channels=0,2 mysong.xm
 </userinput>
 </para>
 </refsect1>
