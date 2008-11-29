@@ -219,9 +219,10 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 	    if (!(flags & (1 << i)))
                 continue;
             switch (channel) {
-		/* square */
+		/* square and noise */
 		case 0:
 		case 1:
+                case 3:
 		    if (n->volume != 0) {
 			if ((n->volume >= 0x10) && (n->volume < 0x50)
 			    && ((n->volume >> 2) != (lastvol >> 2))) {
@@ -236,7 +237,11 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		case 2:
 		    if (n->instrument && (n->instrument != lastinstr)) {
 			data[pos++] = SET_INSTRUMENT_COMMAND;
-			data[pos++] = (n->instrument - 1) & 0x1F; /* ### don't hardcode displacement */
+                        /* ### don't hardcode displacement */
+                        if (channel == 3)
+                            data[pos++] = n->instrument - 0x31;
+                        else
+			    data[pos++] = (n->instrument - 1) & 0x1F;
 			lastinstr = n->instrument;
 		    }
 		    if ((n->effect_type != lastefftype)
@@ -290,59 +295,13 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    data[pos++] = RELEASE_COMMAND;
 			    data[pos++] = END_ROW_COMMAND;
 			} else {
-			    data[pos++] = n->note - 15; /* ### don't hardcode the displacement */
+                            /* ### don't hardcode the displacement */
+                            if (channel == 3)
+			        data[pos++] = n->note - 53;
+                            else
+			        data[pos++] = n->note - 15;
 			}
 		    } else
-                        data[pos++] = END_ROW_COMMAND;
-		    break;
-		    /* noise */
-		case 3:
-		    if (n->volume != 0) {
-			if ((n->volume >= 0x10) && (n->volume < 0x50)
-			    && ((n->volume >> 2) != (lastvol >> 2))) {
-			    /* set new channel volume */
-			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
-			    lastvol = n->volume;
-			}
-		    }
-		    if ((n->effect_type != lastefftype)
-			|| ((n->effect_param != lasteffparam)
-			    && (n->effect_param != 0))) {
-                        switch (n->effect_type) {
-			    case 0:
-				break;
-                            case 0xC:
-				data[pos++] = SET_MASTER_VOLUME_COMMAND;
-				data[pos++] = n->effect_param << 2;
-				break;
-			    case 0xF:
-				data[pos++] = SET_SPEED_COMMAND;
-				data[pos++] = n->effect_param;
-				break;
-			    default:
-				fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
-					n->effect_type, n->effect_param, channel, row+i);
-				break;
-			}
-			lastefftype = n->effect_type;
-                        if (n->effect_param != 0)
-			    lasteffparam = n->effect_param;
-		    }
-                    if (n->note != 0) {
-			if ((n->volume == 0) && (lastvol != 0xF0)) {
-			    /* set max volume */
-			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			    data[pos++] = 0xF0;
-			    lastvol = 0xF0;
-			}
-                        if (n->note == 0x61) {
-			    data[pos++] = RELEASE_COMMAND;
-			    data[pos++] = END_ROW_COMMAND;
-			} else {
-			    data[pos++] = n->instrument - 0x31; /* ### don't hardcode the displacement */
-			}
-                    } else
                         data[pos++] = END_ROW_COMMAND;
 		    break;
 		    /* dpcm */
