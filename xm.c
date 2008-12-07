@@ -72,56 +72,63 @@ static int xm_read_header(FILE *fp, struct xm_header *out)
 
 static int xm_read_pattern(FILE *fp, int channel_count, struct xm_pattern *out)
 {
-    int row, column;
-    struct xm_pattern_slot *slot;
-    unsigned int header_length = read_uint(fp);
+    unsigned int header_length;
+    unsigned char packing_type;
+    unsigned short row_count;
+    unsigned short packed_data_size;
+    long pos_before;
+    header_length = read_uint(fp);
     assert(header_length == 9);
-    unsigned char packing_type = read_byte(fp);
+    packing_type = read_byte(fp);
     assert(packing_type == 0);
-    unsigned short row_count = read_ushort(fp);
-    unsigned short packed_data_size = read_ushort(fp);
-    long pos_before = ftell(fp);
+    row_count = read_ushort(fp);
+    packed_data_size = read_ushort(fp);
+    pos_before = ftell(fp);
     out->row_count = row_count;
     out->data = (struct xm_pattern_slot*)malloc(channel_count * row_count * sizeof(struct xm_pattern_slot));
     memset(out->data, 0, channel_count * row_count * sizeof(struct xm_pattern_slot));
-    /* unpack pattern data */
-    slot = out->data;
-    for (row = 0; row < row_count; ++row) {
-	for (column = 0; column < channel_count; ++column) {
-	    unsigned char pattern_byte;
-            unsigned char note = 0, instrument = 0, volume = 0, effect_type = 0, effect_param = 0;
-	    pattern_byte = read_byte(fp);
-            if (pattern_byte & 0x80) {
-                /* compressed */
-                if (pattern_byte & 0x01)
-		    note = read_byte(fp);
-		if (pattern_byte & 0x02)
+    if (packed_data_size != 0) {
+        /* unpack pattern data */
+        int row, column;
+        struct xm_pattern_slot *slot;
+        slot = out->data;
+        for (row = 0; row < row_count; ++row) {
+	    for (column = 0; column < channel_count; ++column) {
+	        unsigned char pattern_byte;
+                unsigned char note = 0, instrument = 0, volume = 0, effect_type = 0, effect_param = 0;
+	        pattern_byte = read_byte(fp);
+                if (pattern_byte & 0x80) {
+                    /* compressed */
+                    if (pattern_byte & 0x01)
+		        note = read_byte(fp);
+		    if (pattern_byte & 0x02)
+		        instrument = read_byte(fp);
+		    if (pattern_byte & 0x04)
+		        volume = read_byte(fp);
+		    if (pattern_byte & 0x08)
+		        effect_type = read_byte(fp);
+		    if (pattern_byte & 0x10)
+		        effect_param = read_byte(fp);
+	        } else {
+		    /* uncompressed */
+		    note = pattern_byte;
 		    instrument = read_byte(fp);
-		if (pattern_byte & 0x04)
 		    volume = read_byte(fp);
-		if (pattern_byte & 0x08)
 		    effect_type = read_byte(fp);
-		if (pattern_byte & 0x10)
 		    effect_param = read_byte(fp);
-	    } else {
-		/* uncompressed */
-		note = pattern_byte;
-		instrument = read_byte(fp);
-		volume = read_byte(fp);
-		effect_type = read_byte(fp);
-		effect_param = read_byte(fp);
+	        }
+	        slot->note = note;
+	        slot->instrument = instrument;
+	        slot->volume = volume;
+	        /* ### hackensack */
+	        if ((effect_type == 0) && (effect_param != 0)) effect_type = 5; /* arpeggio */
+	        slot->effect_type = effect_type;
+	        slot->effect_param = effect_param;
+                ++slot;
 	    }
-	    slot->note = note;
-	    slot->instrument = instrument;
-	    slot->volume = volume;
-	    /* ### hackensack */
-	    if ((effect_type == 0) && (effect_param != 0)) effect_type = 5; /* arpeggio */
-	    slot->effect_type = effect_type;
-	    slot->effect_param = effect_param;
-            ++slot;
-	}
+        }
+        assert(ftell(fp) == pos_before + packed_data_size);
     }
-    assert(ftell(fp) == pos_before + packed_data_size);
     return XM_NO_ERROR;
 }
 
