@@ -214,9 +214,9 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 	    if (!(flags & (1 << i)))
                 continue;
             switch (channel) {
-		/* square and noise */
 		case 0:
 		case 1:
+		case 2:
                 case 3:
 		    if (n->volume != 0) {
 			if ((n->volume >= 0x10) && (n->volume < 0x50)) {
@@ -225,18 +225,9 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
 			}
 		    }
-		    /* fallthrough */
-                    /* triangle */
-		case 2:
 		    if (n->instrument && (n->instrument != lastinstr)) {
 			data[pos++] = SET_INSTRUMENT_COMMAND;
-                        /* ### don't hardcode displacement */
-                        if (channel == 3) {
-                            assert(n->instrument >= 0x31);
-                            data[pos++] = n->instrument - 0x31;
-                        } else
-			    data[pos++] = (n->instrument - 1) & 0x1F;
-			lastinstr = n->instrument;
+                        data[pos++] = n->instrument - 1;
 		    }
 		    if ((n->effect_type != lastefftype)
 			|| ((n->effect_param != lasteffparam)
@@ -284,10 +275,8 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    data[pos++] = END_ROW_COMMAND;
 			} else {
                             /* ### don't hardcode the displacement */
-                            if (channel == 3)
-			        data[pos++] = n->note - 53;
-                            else
-			        data[pos++] = n->note - 15;
+                            /* make it possible to define transpose per instrument */
+                            data[pos++] = n->note - 15;
                             if (data[pos-1] >= 0x80)
                                 data[pos-1] = 0;
 			}
@@ -298,11 +287,11 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		case 4:
 		    /* ### don't hardcode the sample mapping */
 		    if (n->instrument == 0x39)
-			data[pos++] = 0x1B; /* bassdrum */
+			data[pos++] = 42; /* bassdrum */
 		    else if (n->instrument == 0x3A)
-			data[pos++] = 0x1C; /* combined bassdrum+snare */
+			data[pos++] = 43; /* combined bassdrum+snare */
 		    else if (n->instrument == 0x3B)
-			data[pos++] = n->note - 49; /* bass note */
+			data[pos++] = n->note - 42; /* bass note */
 		    break;
 	    }
 	}
@@ -408,6 +397,7 @@ void convert_xm_to_nes(const struct xm *xm, int channels, const char *label_pref
 		order_offset += xm->header.song_length + 2;
 	    }
 	}
+	fprintf(out, ".dw %sinstrument_table\n", label_prefix);
 	fprintf(out, ".dw %spattern_table\n", label_prefix);
 	order_offset = 0;
 	for (chn = 0; chn < xm->header.channel_count; ++chn) {
