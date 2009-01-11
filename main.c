@@ -82,8 +82,11 @@ static int get_ident(char *s, int i)
 static int get_value(char *s, int i)
 {
     int len = 0;
-    while (isdigit(s[i+len]))
+    if ((s[i+len] == '-') || isdigit(s[i+len])) {
         ++len;
+        while (isdigit(s[i+len]))
+            ++len;
+    }
     return len;
 }
 
@@ -155,15 +158,17 @@ static int parse_instruments_map_file(const char *path, struct instr_mapping *ma
             }
             pos += len;
         }
-        if (source_instr == -1) {
-            fprintf(stderr, "%s:%d: source attribute not specified\n", path, lineno);
-            ok = 0;
-            break;
+        if (ok) {
+            if (source_instr < 0) {
+                fprintf(stderr, "%s:%d: source attribute not specified\n", path, lineno);
+                ok = 0;
+                break;
+            }
+            if (target_instr >= 0)
+                map[source_instr].target_instr = target_instr;
+            if (transpose != 0)
+                map[source_instr].transpose = transpose;
         }
-        if (target_instr != -1)
-            map[source_instr].target_instr = target_instr;
-        if (transpose != 0)
-            map[source_instr].transpose = transpose;
     }
     fclose(fp);
     return ok;
