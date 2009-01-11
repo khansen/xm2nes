@@ -125,6 +125,22 @@ Print program version.
 <refsect1>
 <title>Files</title>
 <refsect2>
+<title>Instrument Mapping File</title>
+<para>
+This input file is optional; it enables custom mapping of input
+instruments to output instruments. The file is a plaintext file, each
+line containing one or more name:value pairs. Example:
+</para>
+<para>
+source:10 target:0 transpose:-6
+</para>
+<para>
+The above line tells the converter to map instrument 10 in the
+input to instrument 0 in the output, and to transpose each note
+for that instrument by -6 in the output.
+</para>
+</refsect2>
+<refsect2>
 <title>Output</title>
 <para>
 The output is assembly source code.

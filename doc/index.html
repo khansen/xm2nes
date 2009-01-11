@@ -14,6 +14,10 @@ standard output.
 </span></dt><dd><p>
 Only process the channels defined by the list of <em class="parameter"><code>channels</code></em>.
 </p></dd><dt><span class="term">
+<code class="option">--instruments-map</code>=<em class="parameter"><code>file</code></em>
+</span></dt><dd><p>
+Reads instrument mapping information from <em class="parameter"><code>file</code></em>.
+</p></dd><dt><span class="term">
 <code class="option">--verbose</code>
 </span></dt><dd><p>
 Print progress information to standard output.
@@ -29,9 +33,19 @@ Give a short usage message.
 <code class="option">--version</code>
 </span></dt><dd><p>
 Print program version.
-</p></dd></dl></div></div><div class="refsect1" lang="en"><a name="id454556"></a><h2>Files</h2><div class="refsect2" lang="en"><a name="id454561"></a><h3>Output</h3><p>
+</p></dd></dl></div></div><div class="refsect1" lang="en"><a name="id454583"></a><h2>Files</h2><div class="refsect2" lang="en"><a name="id454588"></a><h3>Instrument Mapping File</h3><p>
+This input file is optional; it enables custom mapping of input
+instruments to output instruments. The file is a plaintext file, each
+line containing one or more name:value pairs. Example:
+</p><p>
+source:10 target:0 transpose:-6
+</p><p>
+The above line tells the converter to map instrument 10 in the
+input to instrument 0 in the output, and to transpose each note
+for that instrument by -6 in the output.
+</p></div><div class="refsect2" lang="en"><a name="id454611"></a><h3>Output</h3><p>
 The output is assembly source code.
-</p></div></div><div class="refsect1" lang="en"><a name="id454573"></a><h2>Examples</h2><p>
+</p></div></div><div class="refsect1" lang="en"><a name="id454622"></a><h2>Examples</h2><p>
 To convert <code class="literal">mysong.xm</code>:
 </p><p>
 <strong class="userinput"><code>

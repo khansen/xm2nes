@@ -1,11 +1,11 @@
 .\"     Title: xm2nes
 .\"    Author: Kent Hansen
 .\" Generator: DocBook XSL Stylesheets v1.71.1 <http://docbook.sf.net/>
-.\"      Date: 11/29/2008
+.\"      Date: 01/11/2009
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "XM2NES" "1" "11/29/2008" "" ""
+.TH "XM2NES" "1" "01/11/2009" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -34,6 +34,12 @@ Only process the channels defined by the list of
 \fIchannels\fR.
 .RE
 .PP
+\fB\-\-instruments\-map\fR=\fIfile\fR
+.RS 4
+Reads instrument mapping information from
+\fIfile\fR.
+.RE
+.PP
 \fB\-\-verbose\fR
 .RS 4
 Print progress information to standard output.
@@ -54,6 +60,13 @@ Give a short usage message.
 Print program version.
 .RE
 .SH "FILES"
+.SS "Instrument Mapping File"
+.PP
+This input file is optional; it enables custom mapping of input instruments to output instruments. The file is a plaintext file, each line containing one or more name:value pairs. Example:
+.PP
+source:10 target:0 transpose:\-6
+.PP
+The above line tells the converter to map instrument 10 in the input to instrument 0 in the output, and to transpose each note for that instrument by \-6 in the output.
 .SS "Output"
 .PP
 The output is assembly source code.
