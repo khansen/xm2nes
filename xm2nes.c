@@ -21,8 +21,11 @@
 #include <assert.h>
 
 #include "xm.h"
+#include "instrmap.h"
 
-void convert_xm_to_nes(const struct xm *, int, const char *, FILE *);
+void convert_xm_to_nes(const struct xm *, int,
+                       const struct instr_mapping *,
+                       const char *, FILE *);
 
 #define SET_EFFECT_COMMAND_BASE 0xE0
 #define SET_INSTRUMENT_COMMAND 0xF0
@@ -159,7 +162,8 @@ static void calculate_order_table_for_channel(
   Converts the \a channel of the given \a pattern to NES format.
 */
 static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int channel_count,
-				      int channel, unsigned char **out, int *out_size)
+				      int channel, const struct instr_mapping *instr_map,
+                                      unsigned char **out, int *out_size)
 {
     unsigned char lastinstr = 0xFF;
     unsigned char lastefftype = 0x00;
@@ -227,7 +231,8 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		    }
 		    if (n->instrument && (n->instrument != lastinstr)) {
 			data[pos++] = SET_INSTRUMENT_COMMAND;
-                        data[pos++] = n->instrument - 1;
+                        data[pos++] = instr_map[n->instrument - 1].target_instr;
+                        lastinstr = n->instrument;
 		    }
 		    if ((n->effect_type != lastefftype)
 			|| ((n->effect_param != lasteffparam)
@@ -274,9 +279,7 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    data[pos++] = RELEASE_COMMAND;
 			    data[pos++] = END_ROW_COMMAND;
 			} else {
-                            /* ### don't hardcode the displacement */
-                            /* make it possible to define transpose per instrument */
-                            data[pos++] = n->note - 15;
+                            data[pos++] = n->note + instr_map[lastinstr-1].transpose;
                             if (data[pos-1] >= 0x80)
                                 data[pos-1] = 0;
 			}
@@ -305,7 +308,9 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
   Converts the given \a xm to NES format; writes the 6502 assembly
   language representation of the song to \a out.
 */
-void convert_xm_to_nes(const struct xm *xm, int channels, const char *label_prefix, FILE *out)
+void convert_xm_to_nes(const struct xm *xm, int channels,
+                       const struct instr_mapping *instr_map,
+                       const char *label_prefix, FILE *out)
 {
     int chn;
     int unused_channels;
@@ -362,7 +367,8 @@ void convert_xm_to_nes(const struct xm *xm, int channels, const char *label_pref
 	    int data_size;
 	    char label[256];
             int pi = unique_pattern_indexes[chn][i];
-	    convert_xm_pattern_to_nes(&xm->patterns[pi], xm->header.channel_count, chn, &data, &data_size);
+	    convert_xm_pattern_to_nes(&xm->patterns[pi], xm->header.channel_count,
+                                      chn, instr_map, &data, &data_size);
 	    sprintf(label, "%schn%d_ptn%d", label_prefix, chn, i);
 	    print_chunk(out, label, data, data_size, 16);
 	    free(data);

@@ -19,10 +19,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include "xm.h"
+#include "instrmap.h"
 
-extern void convert_xm_to_nes(const struct xm *, int, const char *, FILE *);
+extern void convert_xm_to_nes(const struct xm *, int,
+                              const struct instr_mapping *,
+                              const char *, FILE *);
 
 static char program_version[] = "xm2nes 1.0";
 
@@ -31,7 +35,7 @@ static void usage()
 {
     printf(
         "Usage: xm2nes [--output=FILE] [--channels=CHANNELS]\n"
-        "              [--verbose]\n"
+        "              [--instruments-map=FILE] [--verbose]\n"
         "              [--help] [--usage] [--version]\n"
         "              FILE\n");
     exit(0);
@@ -45,6 +49,7 @@ static void help()
            "Options:\n\n"
            "  --output=FILE                   Store output in FILE\n"
            "  --channels=CHANNELS             Process only CHANNELS (0,1,2,3,4)\n"
+           "  --instruments-map=FILE          Read instrument mapping information from FILE\n"
            "  --verbose                       Print progress information to standard output\n"  
            "  --help                          Give this help list\n"
            "  --usage                         Give a short usage message\n"
@@ -59,6 +64,111 @@ static void version()
     exit(0);
 }
 
+#define IS_SPACE(c) ( ((c) == '\t') || ((c) == ' ') )
+
+static void eat_ws(char *s, int *i)
+{
+    while (IS_SPACE(s[*i])) (*i)++;
+}
+
+static int get_ident(char *s, int i)
+{
+    int len = 0;
+    while (isalpha(s[i+len]))
+        ++len;
+    return len;
+}
+
+static int get_value(char *s, int i)
+{
+    int len = 0;
+    while (isdigit(s[i+len]))
+        ++len;
+    return len;
+}
+
+static int parse_instruments_map_file(const char *path, struct instr_mapping *map)
+{
+    int ok;
+    int lineno;
+    char line[1024];
+    FILE *fp = fopen(path, "rt");
+    if (!fp) {
+        fprintf(stderr, "xm2nes: failed to open `%s' for reading\n", path);
+        return 0;
+    }
+    ok = 1;
+    while (ok && fgets(line, 1023, fp) != NULL) {
+        int source_instr = -1;
+        int target_instr = -1;
+        int transpose = 0;
+        int pos = 0;
+        ++lineno;
+        while (line[pos] && (line[pos] != '\n')) {
+            int len;
+            int attr = -1;
+            int val;
+            eat_ws(line, &pos);
+            len = get_ident(line, pos);
+            if (!len) {
+                fprintf(stderr, "%s:%d.%d: attribute name expected\n", path, lineno, pos+1);
+                ok = 0;
+                break;
+            }
+            if ((len == 6) && !strncmp(&line[pos], "source", 6)) {
+                attr = 0;
+            } else if ((len == 6) && !strncmp(&line[pos], "target", 6)) {
+                attr = 1;
+            } else if ((len == 9) && !strncmp(&line[pos], "transpose", 9)) {
+                attr = 2;
+            } else {
+                fprintf(stderr, "%s:%d.%d: unknown attribute\n", path, lineno, pos+1);
+                ok = 0;
+                break;
+            }
+            pos += len;
+            eat_ws(line, &pos);
+            if (!line[pos] || line[pos] != ':') {
+                fprintf(stderr, "%s:%d.%d: : expected\n", path, lineno, pos+1);
+                ok = 0;
+                break;
+            }
+            ++pos;
+            eat_ws(line, &pos);
+            len = get_value(line, pos);
+            if (!len) {
+                fprintf(stderr, "%s:%d.%d: value expected\n", path, lineno, pos+1);
+                ok = 0;
+                break;
+            }
+            val = strtol(&line[pos], 0, 0);
+            switch (attr) {
+                case 0: /* source */
+                    source_instr = val;
+                    break;
+                case 1: /* target */
+                    target_instr = val;
+                    break;
+                case 2: /* transpose */
+                    transpose = val;
+                    break;
+            }
+            pos += len;
+        }
+        if (source_instr == -1) {
+            fprintf(stderr, "%s:%d: source attribute not specified\n", path, lineno);
+            ok = 0;
+            break;
+        }
+        if (target_instr != -1)
+            map[source_instr].target_instr = target_instr;
+        if (transpose != 0)
+            map[source_instr].transpose = transpose;
+    }
+    fclose(fp);
+    return ok;
+}
+
 /**
   Program entrypoint.
 */
@@ -67,7 +177,16 @@ int main(int argc, char *argv[])
     int verbose = 0;
     const char *input_filename = 0;
     const char *output_filename = 0;
+    const char *instruments_map_filename = 0;
     int channels = 0x1F;
+    struct instr_mapping instr_map[128];
+    {
+        unsigned char i;
+        for (i = 0; i < 128; ++i) {
+            instr_map[i].target_instr = i;
+            instr_map[i].transpose = 0;
+        }
+    }
     /* Process arguments. */
     {
         char *p;
@@ -89,6 +208,8 @@ int main(int argc, char *argv[])
 			}
 		    }
                     channels &= 0x1F;
+                } else if (!strncmp("instruments-map=", opt, 16)) {
+                    instruments_map_filename = &opt[16];
                 } else if (!strcmp("verbose", opt)) {
                     verbose = 1;
                 } else if (!strcmp("help", opt)) {
@@ -117,6 +238,11 @@ int main(int argc, char *argv[])
     if (!channels) {
         fprintf(stderr, "xm2nes: --channels argument needs to include at least one channel\n");
         return(-1);
+    }
+
+    if (instruments_map_filename) {
+        if (!parse_instruments_map_file(instruments_map_filename, instr_map))
+            return(-1);
     }
 
     {
@@ -165,7 +291,7 @@ int main(int argc, char *argv[])
             prefix[len+1] = '\0';
             strncpy(prefix, input_filename, len);
 
-            convert_xm_to_nes(&xm, channels, prefix, out);
+            convert_xm_to_nes(&xm, channels, instr_map, prefix, out);
 
             free(prefix);
         }
