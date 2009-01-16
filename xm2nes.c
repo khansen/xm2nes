@@ -141,9 +141,13 @@ static void find_unique_patterns_for_channel(
 static void calculate_order_table_for_channel(
     const struct xm *xm, int channel,
     unsigned char *unique_pattern_indexes,
-    int unique_pattern_count, unsigned char *order_table)
+    int unique_pattern_count, int pattern_offset,
+    unsigned char *order_table, int *order_table_size)
 {
     int i;
+    int prev = -1;
+    int count = 0;
+    int pos = 0;
     for (i = 0; i < xm->header.song_length; ++i) {
         int j;
         int k = xm->header.pattern_order_table[i];
@@ -154,8 +158,49 @@ static void calculate_order_table_for_channel(
                 break;
         }
         assert(j != unique_pattern_count);
-        order_table[i] = j;
+        if (count == 0) {
+            prev = j;
+            ++count;
+        } else {
+            if (prev == j) {
+                ++count;
+            } else {
+                if (count <= 4) {
+                    if (count > 3)
+                        order_table[pos++] = prev + pattern_offset;
+                    if (count > 2)
+                        order_table[pos++] = prev + pattern_offset;
+                    if (count > 1)
+                        order_table[pos++] = prev + pattern_offset;
+                    order_table[pos++] = prev + pattern_offset;
+                } else {
+                    order_table[pos++] = 0xFB;
+                    order_table[pos++] = count;
+                    order_table[pos++] = prev + pattern_offset;
+                    order_table[pos++] = 0xFC;
+                }
+                prev = j;
+                count = 1;
+            }
+        }
     }
+    if (count != 0) {
+        if (count <= 4) {
+            if (count > 3)
+                order_table[pos++] = prev + pattern_offset;
+            if (count > 2)
+                order_table[pos++] = prev + pattern_offset;
+            if (count > 1)
+                order_table[pos++] = prev + pattern_offset;
+            order_table[pos++] = prev + pattern_offset;
+        } else {
+            order_table[pos++] = 0xFB;
+            order_table[pos++] = count;
+            order_table[pos++] = prev + pattern_offset;
+            order_table[pos++] = 0xFC;
+        }
+    }
+    *order_table_size = pos;
 }
 
 /**
@@ -236,7 +281,8 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 		    }
 		    if ((n->effect_type != lastefftype)
 			|| ((n->effect_param != lasteffparam)
-			    && (n->effect_param != 0))) {
+			    && ((n->effect_param != 0)))
+                        || (n->note != 0)) {
                         switch (n->effect_type) {
                             case 0x0:
 			    case 0x1:
@@ -317,13 +363,15 @@ void convert_xm_to_nes(const struct xm *xm, int channels,
     unsigned char **unique_pattern_indexes;
     int *unique_pattern_count;
     unsigned char *order_data;
+    int *order_data_size;
     if (xm->header.song_length == 0)
         return;
     unused_channels = 0;
     unique_pattern_indexes = (unsigned char **)malloc(xm->header.channel_count * sizeof(unsigned char *));
     unique_pattern_count = (int *)malloc(xm->header.channel_count * sizeof(int));
     order_data = (unsigned char *)malloc(xm->header.channel_count * xm->header.song_length * sizeof(unsigned char));
-    /* Step 1. Find and print unique patterns, and calculate per-channel order tables. */
+    order_data_size = (int *)malloc(xm->header.channel_count * sizeof(int));
+    /* Step 1. Find, convert and print unique patterns. */
     for (chn = 0; chn < xm->header.channel_count; ++chn) {
 	int i;
         if (!((1 << chn) & channels)) {
@@ -373,12 +421,23 @@ void convert_xm_to_nes(const struct xm *xm, int channels,
 	    print_chunk(out, label, data, data_size, 16);
 	    free(data);
 	}
-
-	calculate_order_table_for_channel(xm, chn, unique_pattern_indexes[chn],
-					  unique_pattern_count[chn], &order_data[chn * xm->header.song_length]);
     }
 
-    /* Step 2. Print the pattern pointer table. */
+    /* Step 2. Create order tables. */
+    {
+	int pattern_offset = 0;
+        for (chn = 0; chn < xm->header.channel_count; ++chn) {
+            if (unused_channels & (1 << chn))
+                continue;
+            calculate_order_table_for_channel(xm, chn, unique_pattern_indexes[chn],
+                                              unique_pattern_count[chn], pattern_offset,
+                                              &order_data[chn * xm->header.song_length],
+                                              &order_data_size[chn]);
+	    pattern_offset += unique_pattern_count[chn];
+        }
+    }
+
+    /* Step 3. Print the pattern pointer table. */
     fprintf(out, "%spattern_table:\n", label_prefix);
     for (chn = 0; chn < xm->header.channel_count; ++chn) {
 	int i;
@@ -388,10 +447,9 @@ void convert_xm_to_nes(const struct xm *xm, int channels,
 	    fprintf(out, ".dw %schn%d_ptn%d\n", label_prefix, chn, i);
     }
 
-    /* Step 3. Print song header + order tables. */
+    /* Step 4. Print song header + order tables. */
     fprintf(out, "%ssong:\n", label_prefix);
     {
-	int pattern_offset = 0;
 	int order_offset = 0;
 	for (chn = 0; chn < xm->header.channel_count; ++chn) {
 	    if (chn >= 5)
@@ -400,27 +458,21 @@ void convert_xm_to_nes(const struct xm *xm, int channels,
 		fprintf(out, ".db $FF\n");
 	    } else {
 		fprintf(out, ".db %d,%d\n", order_offset, xm->header.default_tempo + 1);
-		order_offset += xm->header.song_length + 2;
+		order_offset += order_data_size[chn] + 2;
 	    }
 	}
 	fprintf(out, ".dw %sinstrument_table\n", label_prefix);
 	fprintf(out, ".dw %spattern_table\n", label_prefix);
-	order_offset = 0;
+        order_offset = 0;
 	for (chn = 0; chn < xm->header.channel_count; ++chn) {
-	    int i;
 	    if (chn >= 5)
 		break;
 	    if (unused_channels & (1 << chn))
 		continue;
-	    fprintf(out, ".db ");
-	    for (i = 0; i < xm->header.song_length; ++i) {
-		if (i > 0)
-		    fprintf(out, ",");
-		fprintf(out, "%d", pattern_offset + order_data[chn * xm->header.song_length + i]);
-	    }
-	    fprintf(out, ",$FE,%d\n", order_offset); /* loop back to the beginning */
-	    pattern_offset += unique_pattern_count[chn];
-	    order_offset += xm->header.song_length + 2;
+	    print_chunk(out, 0, &order_data[chn * xm->header.song_length],
+                        order_data_size[chn], 16);
+            fprintf(out, ".db $FE,%d\n", order_offset); /* loop back to the beginning */
+            order_offset += order_data_size[chn] + 2;
 	}
     }
 
@@ -430,4 +482,5 @@ void convert_xm_to_nes(const struct xm *xm, int channels,
     free(unique_pattern_indexes);
     free(unique_pattern_count);
     free(order_data);
+    free(order_data_size);
 }
