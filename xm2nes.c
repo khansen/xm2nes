@@ -307,6 +307,18 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 				data[pos++] = SET_MASTER_VOLUME_COMMAND;
 				data[pos++] = n->effect_param << 2;
 				break;
+                            case 0xE:
+                                switch ((n->effect_param & 0xF0) >> 4) {
+                                    case 0xC: /* note cut */
+                                        data[pos++] = SET_EFFECT_COMMAND_BASE | 8;
+                                        data[pos++] = n->effect_param & 0x0F;
+                                        break;
+                                    default:
+                                        fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
+                                                n->effect_type, n->effect_param, channel, row+i);
+                                        break;
+                                }
+                                break;
 			    case 0xF:
 				data[pos++] = SET_SPEED_COMMAND;
 				data[pos++] = n->effect_param;
@@ -314,8 +326,6 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
 			    default:
 				fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
 					n->effect_type, n->effect_param, channel, row+i);
-				lastefftype = n->effect_type;
-				lasteffparam = n->effect_param;
 				break;
 			}
 			lastefftype = n->effect_type;
