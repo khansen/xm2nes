@@ -222,6 +222,8 @@ static void calculate_order_table_for_channel(
     *order_table_size = pos;
 }
 
+static int min(int a, int b) { return a < b ? a : b; }
+
 /**
   Converts the \a channel of the given \a pattern to NES format.
 */
@@ -237,18 +239,19 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
     int sz = 1024;
     unsigned char *data = (unsigned char *)malloc(sz);
     int pos = 0;
-    assert((pattern->row_count % 8) == 0);
     data[pos++] = pattern->row_count;
     /* process channel in 8-row chunks */
     for (row = 0; row < pattern->row_count; row += 8) {
 	int i;
+        int count;
         unsigned char copy[3];
         unsigned char flags = 0;
         copy[0] = lastinstr;
         copy[1] = lastefftype;
         copy[2] = lasteffparam;
+        count = min(8, pattern->row_count - row);
 	/* First pass: calculate active rows byte */
-	for (i = 0; i < 8; ++i) {
+	for (i = 0; i < count; ++i) {
             int instrument_changed = 0;
             const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
 	    if (n->note != 0) {
@@ -286,7 +289,7 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
         lastinstr = copy[0];
         lastefftype = copy[1];
         lasteffparam = copy[2];
-	for (i = 0; i < 8; ++i) {
+	for (i = 0; i < count; ++i) {
             int instrument_changed = 0;
 	    const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
 	    if (!(flags & (1 << i)))
