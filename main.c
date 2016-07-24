@@ -93,7 +93,7 @@ static int get_value(char *s, int i)
 static int parse_instruments_map_file(const char *path, struct instr_mapping *map)
 {
     int ok;
-    int lineno;
+    int lineno = 0;
     char line[1024];
     int defined_set[128/(sizeof(int)*8)];
     FILE *fp = fopen(path, "rt");
