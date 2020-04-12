@@ -581,8 +581,10 @@ void convert_xm_to_nes(const struct xm *xm,
                       options->label_prefix, out);
 
     /* Cleanup */
-    for (chn = 0; chn < xm->header.channel_count; ++chn)
-        free(unique_pattern_indexes[chn]);
+    for (chn = 0; chn < xm->header.channel_count; ++chn) {
+        if (!(unused_channels & (1 << chn)))
+            free(unique_pattern_indexes[chn]);
+    }
     free(unique_pattern_indexes);
     free(unique_pattern_count);
     free(order_data);
