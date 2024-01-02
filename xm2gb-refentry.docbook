@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
   "/sw/share/xml/dtd/docbookx/4.5.0/docbookx.dtd">
 
-<refentry id="xm2nes">
+<refentry id="xm2gb">
 
 <refentryinfo>
 <author>
@@ -11,18 +11,18 @@
 </refentryinfo>
 
 <refmeta>
-<refentrytitle>xm2nes</refentrytitle>
+<refentrytitle>xm2gb</refentrytitle>
 <manvolnum>1</manvolnum>
 </refmeta>
 
 <refnamediv>
-<refname>xm2nes</refname>
-<refpurpose>converts Fasttracker ][ eXtended Module (XM) files to Kent's NES music format</refpurpose>
+<refname>xm2gb</refname>
+<refpurpose>converts Fasttracker ][ eXtended Module (XM) files to Kent's Game Boy music format</refpurpose>
 </refnamediv>
 
 <refsynopsisdiv>
 <cmdsynopsis>
-<command>xm2nes</command>
+<command>xm2gb</command>
 <arg choice="opt" rep="repeat">
   <option>option</option>
 </arg>
@@ -32,8 +32,8 @@
 
 <refsect1><title>Description</title>
 <para>
-<command>xm2nes</command> reads an eXtended Module (XM) file and
-converts it to the format used by Kent's NES music player.
+<command>xm2gb</command> reads an eXtended Module (XM) file and
+converts it to the format used by Kent's Game Boy music player.
 </para>
 </refsect1>
 
@@ -188,7 +188,7 @@ To convert <literal>mysong.xm</literal>:
 </para>
 <para>
 <userinput>
-xm2nes mysong.xm
+xm2gb mysong.xm
 </userinput>
 </para>
 <para>
@@ -196,7 +196,7 @@ To convert only channels 0 and 2 of <literal>mysong.xm</literal>:
 </para>
 <para>
 <userinput>
-xm2nes --channels=0,2 mysong.xm
+xm2gb --channels=0,2 mysong.xm
 </userinput>
 </para>
 <para>
@@ -205,7 +205,7 @@ and call the result "middle":
 </para>
 <para>
 <userinput>
-xm2nes --order-start=3 --order-end=5 --label-prefix=middle mysong.xm
+xm2gb --order-start=3 --order-end=5 --label-prefix=middle mysong.xm
 </userinput>
 </para>
 </refsect1>
@@ -225,7 +225,7 @@ in this version. Unsupported effects are ignored by the converter.
 </listitem>
 <listitem>
 <para>
-9 (set sample offset). (Would make sense to implement for DMC.)
+9 (set sample offset). (Would make sense to implement for channel 3.)
 </para>
 </listitem>
 <listitem>

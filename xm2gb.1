@@ -1,5 +1,5 @@
 '\" t
-.\"     Title: xm2nes
+.\"     Title: xm2gb
 .\"    Author: Kent Hansen
 .\" Generator: DocBook XSL Stylesheets v1.74.3 <http://docbook.sf.net/>
 .\"      Date: 12/27/2009
@@ -7,7 +7,7 @@
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "XM2NES" "1" "12/27/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "XM2GB" "1" "12/27/2009" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -19,15 +19,15 @@
 .\" * MAIN CONTENT STARTS HERE *
 .\" -----------------------------------------------------------------
 .SH "NAME"
-xm2nes \- converts Fasttracker ][ eXtended Module (XM) files to Kent\'s NES music format
+xm2gb \- converts Fasttracker ][ eXtended Module (XM) files to Kent\'s Game Boy music format
 .SH "SYNOPSIS"
-.HP \w'\fBxm2nes\fR\ 'u
-\fBxm2nes\fR [\fBoption\fR...] {file}
+.HP \w'\fBxm2gb\fR\ 'u
+\fBxm2gb\fR [\fBoption\fR...] {file}
 .SH "DESCRIPTION"
 .PP
 
-\fBxm2nes\fR
-reads an eXtended Module (XM) file and converts it to the format used by Kent\'s NES music player\&.
+\fBxm2gb\fR
+reads an eXtended Module (XM) file and converts it to the format used by Kent\'s Game Boy music player\&.
 .SH "OPTIONS"
 .PP
 \fB\-\-output\fR=\fIfile\fR
@@ -102,19 +102,19 @@ To convert
 mysong\&.xm:
 .PP
 
-\fB xm2nes mysong\&.xm \fR
+\fB xm2gb mysong\&.xm \fR
 .PP
 To convert only channels 0 and 2 of
 mysong\&.xm:
 .PP
 
-\fB xm2nes \-\-channels=0,2 mysong\&.xm \fR
+\fB xm2gb \-\-channels=0,2 mysong\&.xm \fR
 .PP
 To convert only the order table range [3,5] of
 mysong\&.xm, and call the result "middle":
 .PP
 
-\fB xm2nes \-\-order\-start=3 \-\-order\-end=5 \-\-label\-prefix=middle mysong\&.xm \fR
+\fB xm2gb \-\-order\-start=3 \-\-order\-end=5 \-\-label\-prefix=middle mysong\&.xm \fR
 .SH "UNSUPPORTED EFFECTS"
 .PP
 The following effects are not supported, or only partially supported, in this version\&. Unsupported effects are ignored by the converter\&.
@@ -140,7 +140,7 @@ The following effects are not supported, or only partially supported, in this ve
 .sp -1
 .IP \(bu 2.3
 .\}
-9 (set sample offset)\&. (Would make sense to implement for DMC\&.)
+9 (set sample offset)\&. (Would make sense to implement for channel 3\&.)
 .RE
 .sp
 .RS 4

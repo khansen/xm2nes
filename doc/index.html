@@ -1,8 +1,8 @@
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>xm2nes</title><meta name="generator" content="DocBook XSL Stylesheets V1.74.3"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="refentry" lang="en"><a name="xm2nes"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>xm2nes &#8212; converts Fasttracker ][ eXtended Module (XM) files to Kent's NES music format</p></div><div class="refsynopsisdiv"><h2>Synopsis</h2><div class="cmdsynopsis"><p><code class="command">xm2nes</code>  [
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>xm2gb</title><meta name="generator" content="DocBook XSL Stylesheets V1.74.3"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="refentry" lang="en"><a name="xm2gb"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>xm2gb &#8212; converts Fasttracker ][ eXtended Module (XM) files to Kent's Game Boy music format</p></div><div class="refsynopsisdiv"><h2>Synopsis</h2><div class="cmdsynopsis"><p><code class="command">xm2gb</code>  [
   <code class="option">option</code>
 ...] {file}</p></div></div><div class="refsect1" lang="en"><a name="id465194"></a><h2>Description</h2><p>
-<span class="command"><strong>xm2nes</strong></span> reads an eXtended Module (XM) file and
-converts it to the format used by Kent's NES music player.
+<span class="command"><strong>xm2gb</strong></span> reads an eXtended Module (XM) file and
+converts it to the format used by Kent's Game Boy music player.
 </p></div><div class="refsect1" lang="en"><a name="id472459"></a><h2>Options</h2><div class="variablelist"><dl><dt><span class="term">
 <code class="option">--output</code>=<em class="parameter"><code>file</code></em>
 </span></dt><dd><p>
@@ -61,20 +61,20 @@ The output is assembly source code.
 To convert <code class="literal">mysong.xm</code>:
 </p><p>
 <strong class="userinput"><code>
-xm2nes mysong.xm
+xm2gb mysong.xm
 </code></strong>
 </p><p>
 To convert only channels 0 and 2 of <code class="literal">mysong.xm</code>:
 </p><p>
 <strong class="userinput"><code>
-xm2nes --channels=0,2 mysong.xm
+xm2gb --channels=0,2 mysong.xm
 </code></strong>
 </p><p>
 To convert only the order table range [3,5] of <code class="literal">mysong.xm</code>,
 and call the result "middle":
 </p><p>
 <strong class="userinput"><code>
-xm2nes --order-start=3 --order-end=5 --label-prefix=middle mysong.xm
+xm2gb --order-start=3 --order-end=5 --label-prefix=middle mysong.xm
 </code></strong>
 </p></div><div class="refsect1" lang="en"><a name="id449913"></a><h2>Unsupported Effects</h2><p>
 The following effects are not supported, or only partially supported,
@@ -83,7 +83,7 @@ in this version. Unsupported effects are ignored by the converter.
 </p><div class="itemizedlist"><ul type="disc"><li><p>
 8 (set panning position). The NES audio hardware doesn't support panning.
 </p></li><li><p>
-9 (set sample offset). (Would make sense to implement for DMC.)
+9 (set sample offset). (Would make sense to implement for channel 3.)
 </p></li><li><p>
 B (position jump).
 </p></li><li><p>
