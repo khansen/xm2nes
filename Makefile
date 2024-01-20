@@ -22,7 +22,7 @@ install: xm2gb
 	$(INSTALL) -m 0755 xm2gb $(bindir)
 	$(INSTALL) -m 0444 xm2gb.1 $(mandir)/man1
 
-doc: xm2nes-refentry.docbook
+doc: xm2gb-refentry.docbook
 	xsltproc $(docbookxsldir)/manpages/docbook.xsl $<
 	xsltproc $(docbookxsldir)/html/docbook.xsl $< > doc/index.html
 
