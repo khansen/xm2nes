@@ -22,12 +22,12 @@
 
 #include "xm2gb.h"
 
+#define SET_VOLUME_COMMAND_BASE 0xD0
 #define SET_EFFECT_COMMAND_BASE 0xE0
 #define SET_INSTRUMENT_COMMAND 0xF0
 #define RELEASE_COMMAND 0xF1
-#define SET_MASTER_VOLUME_COMMAND 0xF2
-#define SET_SPEED_COMMAND 0xF3
-#define END_ROW_COMMAND 0xF4
+#define SET_SPEED_COMMAND 0xF2
+#define END_ROW_COMMAND 0xF3
 
 /**
   Prints \a size bytes of data defined by \a buf to \a out.
@@ -299,8 +299,7 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
 		    if (n->volume != 0) {
 			if ((n->volume >= 0x10) && (n->volume < 0x50)) {
 			    /* set new channel volume */
-			    data[pos++] = SET_MASTER_VOLUME_COMMAND;
-			    data[pos++] = ((n->volume - 0x10) >> 2) << 4;
+			    data[pos++] = SET_VOLUME_COMMAND_BASE | ((n->volume - 0x10) >> 2);
 			}
 		    }
 		    if (n->instrument && (n->instrument != lastinstr)) {
@@ -335,8 +334,7 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
 				break;
 			    }
                             case 0xC:
-				data[pos++] = SET_MASTER_VOLUME_COMMAND;
-				data[pos++] = n->effect_param << 2;
+				data[pos++] = SET_VOLUME_COMMAND_BASE | (n->effect_param >> 2);
 				break;
                             case 0xE:
                                 switch ((n->effect_param & 0xF0) >> 4) {
@@ -520,6 +518,9 @@ void convert_xm_to_gb(const struct xm *xm,
             int pi = unique_pattern_indexes[chn][i];
 	    convert_xm_pattern_to_gb(&xm->patterns[pi], xm->header.channel_count,
                                       chn, options->instr_map, &data, &data_size);
+	    if (data_size >= 256) {
+                fprintf(stderr, "pattern %d, channel %d exceeds 256 bytes in size (%d)\n", pi, chn, data_size);
+            }
 	    sprintf(label, "%schn%d_ptn%d", options->label_prefix, chn, i);
 	    print_chunk(out, label, data, data_size, 16);
 	    free(data);
