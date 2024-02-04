@@ -22,6 +22,7 @@
 
 #include "xm2gb.h"
 
+#define SET_SPEED_COMMAND_BASE 0xC0
 #define SET_VOLUME_COMMAND_BASE 0xD0
 #define SET_EFFECT_COMMAND_BASE 0xE0
 #define SET_INSTRUMENT_COMMAND 0xF0
@@ -353,8 +354,12 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                                 }
                                 break;
 			    case 0xF:
-				data[pos++] = SET_SPEED_COMMAND;
-				data[pos++] = n->effect_param + 1;
+                if (n->effect_param < 0x10) {
+                    data[pos++] = SET_SPEED_COMMAND_BASE | n->effect_param;
+                } else {
+                    data[pos++] = SET_SPEED_COMMAND;
+                    data[pos++] = n->effect_param + 1;
+                }
 				break;
 			    default:
 				fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
