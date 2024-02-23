@@ -220,11 +220,6 @@ in this version. Unsupported effects are ignored by the converter.
 <itemizedlist>
 <listitem>
 <para>
-8 (set panning position). The NES audio hardware doesn't support panning.
-</para>
-</listitem>
-<listitem>
-<para>
 9 (set sample offset). (Would make sense to implement for channel 3.)
 </para>
 </listitem>
