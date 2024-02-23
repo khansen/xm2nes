@@ -29,6 +29,9 @@
 #define RELEASE_COMMAND 0xF1
 #define SET_SPEED_COMMAND 0xF2
 #define END_ROW_COMMAND 0xF3
+#define PAN_LEFT_COMMAND 0xF4
+#define PAN_CENTER_COMMAND 0xF5
+#define PAN_RIGHT_COMMAND 0xF6
 
 /**
   Prints \a size bytes of data defined by \a buf to \a out.
@@ -266,7 +269,8 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
             }
 
             if (n->volume != 0) {
-                if ((n->volume >= 0x10) && (n->volume < 0x50)) {
+                if (((n->volume >= 0x10) && (n->volume < 0x50)) /* set volume */
+                    || ((n->volume >= 0xc0) && (n->volume < 0xd0)) /* set panning */) {
                     flags |= 1 << i;
                 }
             }
@@ -304,6 +308,17 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                     if ((n->volume >= 0x10) && (n->volume < 0x50)) {
                         /* set new channel volume */
                         data[pos++] = SET_VOLUME_COMMAND_BASE | ((n->volume - 0x10) >> 2);
+                    } else if ((n->volume >= 0xc0) && (n->volume < 0xd0)) {
+                        /* set panning */
+                        if (n->volume < 0xc4)
+                            data[pos++] = PAN_LEFT_COMMAND;
+                        else if (n->volume < 0xcc)
+                            data[pos++] = PAN_CENTER_COMMAND;
+                        else
+                            data[pos++] = PAN_RIGHT_COMMAND;
+                    } else {
+                        fprintf(stderr, "ignoring volume value %2x in channel %d, row %d\n",
+                            n->volume, channel, row+i);
                     }
                 }
 
@@ -331,7 +346,7 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                         case 0xA: {
                             unsigned char tp = n->effect_type;
                             if (tp == 0xA)
-                                tp = 6;
+                                tp = 6; /* volume slide mapped to 6 */
                             data[pos++] = SET_EFFECT_COMMAND_BASE | tp;
                             if ((n->effect_type != 0) && (n->effect_param != 0))
                                 lasteffparam = n->effect_param;
@@ -339,6 +354,15 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                                 data[pos++] = lasteffparam;
                             break;
                         }
+
+                        case 0x8:
+                        if (n->effect_param < 0x40)
+                            data[pos++] = PAN_LEFT_COMMAND;
+                        else if (n->effect_param < 0xC0)
+                            data[pos++] = PAN_CENTER_COMMAND;
+                        else
+                            data[pos++] = PAN_RIGHT_COMMAND;
+                        break;
 
                         case 0xC:
                         data[pos++] = SET_VOLUME_COMMAND_BASE | (n->effect_param >> 2);
