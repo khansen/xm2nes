@@ -243,7 +243,7 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
     data[pos++] = pattern->row_count;
     /* process channel in 8-row chunks */
     for (row = 0; row < pattern->row_count; row += 8) {
-	int i;
+        int i;
         int count;
         unsigned char copy[3];
         unsigned char flags = 0;
@@ -251,137 +251,147 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
         copy[1] = lastefftype;
         copy[2] = lasteffparam;
         count = min(8, pattern->row_count - row);
-	/* First pass: calculate active rows byte */
-	for (i = 0; i < count; ++i) {
+        /* First pass: calculate active rows byte */
+        for (i = 0; i < count; ++i) {
             int instrument_changed = 0;
             const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
-	    if (n->note != 0) {
-		flags |= 1 << i;
-	    }
+            if (n->note != 0) {
+                flags |= 1 << i;
+            }
+
             if ((n->instrument != 0) && (n->instrument != lastinstr)) {
-		lastinstr = n->instrument;
-		flags |= 1 << i;
+                lastinstr = n->instrument;
+                flags |= 1 << i;
                 instrument_changed = 1;
-	    }
+            }
+
             if (n->volume != 0) {
-		if ((n->volume >= 0x10) && (n->volume < 0x50)) {
-			flags |= 1 << i;
-		}
-	    }
+                if ((n->volume >= 0x10) && (n->volume < 0x50)) {
+                    flags |= 1 << i;
+                }
+            }
+
             if ((n->effect_type != lastefftype)
                 || ((n->effect_param != lasteffparam)
                     && (n->effect_param != 0))
                 || /* setting instrument resets effect */
                 (instrument_changed && (n->effect_type != 0))) {
-		if ((n->effect_type != 0) && (n->effect_param != 0))
-		    lasteffparam = n->effect_param;
-		lastefftype = n->effect_type;
-		flags |= 1 << i;
-	    }
-	}
-	data[pos++] = flags;
+                if ((n->effect_type != 0) && (n->effect_param != 0))
+                    lasteffparam = n->effect_param;
+                lastefftype = n->effect_type;
+                flags |= 1 << i;
+            }
+        }
+        data[pos++] = flags;
 
-	/* Second pass: the actual note+effect data for these 8 rows */
+        /* Second pass: the actual note+effect data for these 8 rows */
         /* Note that the conditions for outputting data should exactly
            match those in the first pass! */
         lastinstr = copy[0];
         lastefftype = copy[1];
         lasteffparam = copy[2];
-	for (i = 0; i < count; ++i) {
+        for (i = 0; i < count; ++i) {
             int instrument_changed = 0;
-	    const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
-	    if (!(flags & (1 << i)))
+            const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
+            if (!(flags & (1 << i)))
                 continue;
             switch (channel) {
-		case 0:
-		case 1:
-		case 2:
+                case 0:
+                case 1:
+                case 2:
                 case 3:
-		    if (n->volume != 0) {
-			if ((n->volume >= 0x10) && (n->volume < 0x50)) {
-			    /* set new channel volume */
-			    data[pos++] = SET_VOLUME_COMMAND_BASE | ((n->volume - 0x10) >> 2);
-			}
-		    }
-		    if (n->instrument && (n->instrument != lastinstr)) {
-			data[pos++] = SET_INSTRUMENT_COMMAND;
-                        data[pos++] = instr_map[n->instrument - 1].target_instr;
-                        lastinstr = n->instrument;
-                        instrument_changed = 1;
-		    }
-		    if ((n->effect_type != lastefftype)
-			|| ((n->effect_param != lasteffparam)
-			    && ((n->effect_param != 0)))
-                        || /* setting instrument resets effect */
-                        (instrument_changed && (n->effect_type != 0))) {
-                        switch (n->effect_type) {
-                            case 0x0:
-			    case 0x1:
-			    case 0x2:
-			    case 0x3:
-			    case 0x4:
-			    case 0x5: /* This is actually arpeggio -- see hack in xm.c */
-			    case 0x6:
-			    case 0x7:
-                            case 0xA: {
-                                unsigned char tp = n->effect_type;
-                                if (tp == 0xA)
-				    tp = 6;
-				data[pos++] = SET_EFFECT_COMMAND_BASE | tp;
-				if ((n->effect_type != 0) && (n->effect_param != 0))
-				    lasteffparam = n->effect_param;
-				if (n->effect_type != 0)
-				    data[pos++] = lasteffparam;
-				break;
-			    }
-                            case 0xC:
-				data[pos++] = SET_VOLUME_COMMAND_BASE | (n->effect_param >> 2);
-				break;
-                            case 0xE:
-                                switch ((n->effect_param & 0xF0) >> 4) {
-                                    case 0x8: /* pulse modulation */
-                                        data[pos++] = SET_EFFECT_COMMAND_BASE | 9;
-                                        data[pos++] = n->effect_param & 0x0F;
-                                        break;
-                                    case 0xC: /* note cut */
-                                        data[pos++] = SET_EFFECT_COMMAND_BASE | 8;
-                                        data[pos++] = n->effect_param & 0x0F;
-                                        break;
-                                    default:
-                                        fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
-                                                n->effect_type, n->effect_param, channel, row+i);
-                                        break;
-                                }
-                                break;
-			    case 0xF:
-                if (n->effect_param < 0x10) {
-                    data[pos++] = SET_SPEED_COMMAND_BASE | n->effect_param;
-                } else {
-                    data[pos++] = SET_SPEED_COMMAND;
-                    data[pos++] = n->effect_param + 1;
+                if (n->volume != 0) {
+                    if ((n->volume >= 0x10) && (n->volume < 0x50)) {
+                        /* set new channel volume */
+                        data[pos++] = SET_VOLUME_COMMAND_BASE | ((n->volume - 0x10) >> 2);
+                    }
                 }
-				break;
-			    default:
-				fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
-					n->effect_type, n->effect_param, channel, row+i);
-				break;
-			}
-			lastefftype = n->effect_type;
-		    }
-                    if (n->note != 0) {
-                        if (n->note == 0x61) {
-			    data[pos++] = RELEASE_COMMAND;
-			    data[pos++] = END_ROW_COMMAND;
-			} else {
-                            data[pos++] = n->note + instr_map[lastinstr-1].transpose;
-                            if (data[pos-1] >= 0x80)
-                                data[pos-1] = 0;
-			}
-		    } else
-                        data[pos++] = END_ROW_COMMAND;
-		    break;
-	    }
-	}
+
+                if (n->instrument && (n->instrument != lastinstr)) {
+                    data[pos++] = SET_INSTRUMENT_COMMAND;
+                    data[pos++] = instr_map[n->instrument - 1].target_instr;
+                    lastinstr = n->instrument;
+                    instrument_changed = 1;
+                }
+
+                if ((n->effect_type != lastefftype)
+                || ((n->effect_param != lasteffparam)
+                    && ((n->effect_param != 0)))
+                            || /* setting instrument resets effect */
+                            (instrument_changed && (n->effect_type != 0))) {
+                    switch (n->effect_type) {
+                        case 0x0:
+                        case 0x1:
+                        case 0x2:
+                        case 0x3:
+                        case 0x4:
+                        case 0x5: /* This is actually arpeggio -- see hack in xm.c */
+                        case 0x6:
+                        case 0x7:
+                        case 0xA: {
+                            unsigned char tp = n->effect_type;
+                            if (tp == 0xA)
+                                tp = 6;
+                            data[pos++] = SET_EFFECT_COMMAND_BASE | tp;
+                            if ((n->effect_type != 0) && (n->effect_param != 0))
+                                lasteffparam = n->effect_param;
+                            if (n->effect_type != 0)
+                                data[pos++] = lasteffparam;
+                            break;
+                        }
+
+                        case 0xC:
+                        data[pos++] = SET_VOLUME_COMMAND_BASE | (n->effect_param >> 2);
+                        break;
+
+                        case 0xE:
+                        switch ((n->effect_param & 0xF0) >> 4) {
+                            case 0x8: /* pulse modulation */
+                                data[pos++] = SET_EFFECT_COMMAND_BASE | 9;
+                                data[pos++] = n->effect_param & 0x0F;
+                                break;
+                            case 0xC: /* note cut */
+                                data[pos++] = SET_EFFECT_COMMAND_BASE | 8;
+                                data[pos++] = n->effect_param & 0x0F;
+                                break;
+                            default:
+                                fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
+                                        n->effect_type, n->effect_param, channel, row+i);
+                                break;
+                        }
+                        break;
+
+                        case 0xF:
+                        if (n->effect_param < 0x10) {
+                            data[pos++] = SET_SPEED_COMMAND_BASE | n->effect_param;
+                        } else {
+                            data[pos++] = SET_SPEED_COMMAND;
+                            data[pos++] = n->effect_param + 1;
+                        }
+                        break;
+
+                        default:
+                        fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
+                            n->effect_type, n->effect_param, channel, row+i);
+                        break;
+                    }
+                lastefftype = n->effect_type;
+                }
+
+                if (n->note != 0) {
+                    if (n->note == 0x61) {
+                    data[pos++] = RELEASE_COMMAND;
+                    data[pos++] = END_ROW_COMMAND;
+                    } else {
+                        data[pos++] = n->note + instr_map[lastinstr-1].transpose;
+                        if (data[pos-1] >= 0x80)
+                            data[pos-1] = 0;
+                    }
+                } else
+                    data[pos++] = END_ROW_COMMAND;
+                break;
+            }
+        }
     }
 
     *out = data;
