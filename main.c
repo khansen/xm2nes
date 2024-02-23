@@ -23,7 +23,7 @@
 
 #include "xm2gb.h"
 
-static char program_version[] = "xm2gb 3.1.0";
+static char program_version[] = "xm2gb 4.0.0";
 
 /* Prints usage message and exits. */
 static void usage()

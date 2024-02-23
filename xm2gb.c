@@ -168,8 +168,6 @@ static void calculate_order_table_for_channel(
     unsigned char *order_table, int *order_table_size)
 {
     int i;
-    int prev = -1;
-    int count = 0;
     int pos = 0;
     for (i = order_start_offset; i <= order_end_offset; ++i) {
         int j;
@@ -181,47 +179,7 @@ static void calculate_order_table_for_channel(
                 break;
         }
         assert(j != unique_pattern_count);
-        if (count == 0) {
-            prev = j;
-            ++count;
-        } else {
-            if (prev == j) {
-                ++count;
-            } else {
-                if (count <= 4) {
-                    if (count > 3)
-                        order_table[pos++] = prev + pattern_offset;
-                    if (count > 2)
-                        order_table[pos++] = prev + pattern_offset;
-                    if (count > 1)
-                        order_table[pos++] = prev + pattern_offset;
-                    order_table[pos++] = prev + pattern_offset;
-                } else {
-                    order_table[pos++] = 0xFB;
-                    order_table[pos++] = count;
-                    order_table[pos++] = prev + pattern_offset;
-                    order_table[pos++] = 0xFC;
-                }
-                prev = j;
-                count = 1;
-            }
-        }
-    }
-    if (count != 0) {
-        if (count <= 4) {
-            if (count > 3)
-                order_table[pos++] = prev + pattern_offset;
-            if (count > 2)
-                order_table[pos++] = prev + pattern_offset;
-            if (count > 1)
-                order_table[pos++] = prev + pattern_offset;
-            order_table[pos++] = prev + pattern_offset;
-        } else {
-            order_table[pos++] = 0xFB;
-            order_table[pos++] = count;
-            order_table[pos++] = prev + pattern_offset;
-            order_table[pos++] = 0xFC;
-        }
+        order_table[pos++] = j + pattern_offset;
     }
     *order_table_size = pos;
 }
