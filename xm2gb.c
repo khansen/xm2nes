@@ -214,16 +214,19 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
         count = min(8, pattern->row_count - row);
         /* First pass: calculate active rows byte */
         for (i = 0; i < count; ++i) {
-            int instrument_changed = 0;
             const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
             if (n->note != 0) {
+                flags |= 1 << i;
+            }
+
+            if (n->effect_type == 0 && lastefftype != 0) {
+                /* Effect will be cleared */
                 flags |= 1 << i;
             }
 
             if ((n->instrument != 0) && (n->instrument != lastinstr)) {
                 lastinstr = n->instrument;
                 flags |= 1 << i;
-                instrument_changed = 1;
             }
 
             if (n->volume != 0) {
@@ -233,16 +236,13 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                 }
             }
 
-            if ((n->effect_type != lastefftype)
-                || ((n->effect_param != lasteffparam)
-                    && (n->effect_param != 0))
-                || /* setting instrument resets effect */
-                (instrument_changed && (n->effect_type != 0))) {
-                if ((n->effect_type != 0) && (n->effect_param != 0))
+            if (n->effect_type != 0 && ((n->effect_type != lastefftype)
+                || ((n->effect_param != lasteffparam) && (n->effect_param != 0)))) {
+                if (n->effect_param != 0)
                     lasteffparam = n->effect_param;
-                lastefftype = n->effect_type;
                 flags |= 1 << i;
             }
+            lastefftype = n->effect_type;
         }
         data[pos++] = flags;
 
@@ -253,10 +253,12 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
         lastefftype = copy[1];
         lasteffparam = copy[2];
         for (i = 0; i < count; ++i) {
-            int instrument_changed = 0;
             const struct xm_pattern_slot *n = &slots[(row+i)*channel_count];
-            if (!(flags & (1 << i)))
+            if (!(flags & (1 << i))) {
+                lastefftype = n->effect_type;
                 continue;
+            }
+
             switch (channel) {
                 case 0:
                 case 1:
@@ -280,20 +282,20 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                     }
                 }
 
+                if (n->effect_type == 0 && lastefftype != 0) {
+                    /* Clear effect */
+                    data[pos++] = SET_EFFECT_COMMAND_BASE;
+                }
+
                 if (n->instrument && (n->instrument != lastinstr)) {
                     data[pos++] = SET_INSTRUMENT_COMMAND;
                     data[pos++] = instr_map[n->instrument - 1].target_instr;
                     lastinstr = n->instrument;
-                    instrument_changed = 1;
                 }
 
-                if ((n->effect_type != lastefftype)
-                || ((n->effect_param != lasteffparam)
-                    && ((n->effect_param != 0)))
-                            || /* setting instrument resets effect */
-                            (instrument_changed && (n->effect_type != 0))) {
+                if (n->effect_type != 0 && ((n->effect_type != lastefftype)
+                    || ((n->effect_param != lasteffparam) && (n->effect_param != 0)))) {
                     switch (n->effect_type) {
-                        case 0x0:
                         case 0x1:
                         case 0x2:
                         case 0x3:
@@ -306,10 +308,9 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                             if (tp == 0xA)
                                 tp = 6; /* volume slide mapped to 6 */
                             data[pos++] = SET_EFFECT_COMMAND_BASE | tp;
-                            if ((n->effect_type != 0) && (n->effect_param != 0))
+                            if (n->effect_param != 0)
                                 lasteffparam = n->effect_param;
-                            if (n->effect_type != 0)
-                                data[pos++] = lasteffparam;
+                            data[pos++] = lasteffparam;
                             break;
                         }
 
@@ -357,8 +358,8 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                             n->effect_type, n->effect_param, channel, row+i);
                         break;
                     }
-                lastefftype = n->effect_type;
                 }
+                lastefftype = n->effect_type;
 
                 if (n->note != 0) {
                     if (n->note == 0x61) {
