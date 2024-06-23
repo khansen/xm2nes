@@ -227,6 +227,9 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
             if ((n->instrument != 0) && (n->instrument != lastinstr)) {
                 lastinstr = n->instrument;
                 flags |= 1 << i;
+                /* setting instrument resets effect */
+                lastefftype = 0;
+                lasteffparam = 0;
             }
 
             if (n->volume != 0) {
@@ -291,6 +294,9 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                     data[pos++] = SET_INSTRUMENT_COMMAND;
                     data[pos++] = instr_map[n->instrument - 1].target_instr;
                     lastinstr = n->instrument;
+                    /* setting instrument resets effect */
+                    lastefftype = 0;
+                    lasteffparam = 0;
                 }
 
                 if (n->effect_type != 0 && ((n->effect_type != lastefftype)
