@@ -1,7 +1,7 @@
 INSTALL = install
 CFLAGS = -Wall -g
 LFLAGS =
-OBJS = xm2gb.o xm.o main.o
+OBJS = xm2gba.o xm.o main.o
 
 prefix = /usr/local
 datarootdir = $(prefix)/share
@@ -12,21 +12,21 @@ infodir = $(datarootdir)/info
 mandir = $(datarootdir)/man
 docbookxsldir = /sw/share/xml/xsl/docbook-xsl
 
-xm2gb: $(OBJS)
-	$(CC) $(LFLAGS) $(OBJS) -o xm2gb
+xm2gba: $(OBJS)
+	$(CC) $(LFLAGS) $(OBJS) -o xm2gba
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-install: xm2gb
-	$(INSTALL) -m 0755 xm2gb $(bindir)
-	$(INSTALL) -m 0444 xm2gb.1 $(mandir)/man1
+install: xm2gba
+	$(INSTALL) -m 0755 xm2gba $(bindir)
+	$(INSTALL) -m 0444 xm2gba.1 $(mandir)/man1
 
-doc: xm2gb-refentry.docbook
+doc: xm2gba-refentry.docbook
 	xsltproc $(docbookxsldir)/manpages/docbook.xsl $<
 	xsltproc $(docbookxsldir)/html/docbook.xsl $< > doc/index.html
 
 clean:
-	rm -f $(OBJS) xm2gb xm2gb.exe
+	rm -f $(OBJS) xm2gba xm2gba.exe
 
 .PHONY: clean install

@@ -1,7 +1,7 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
   "/sw/share/xml/dtd/docbookx/4.5.0/docbookx.dtd">
 
-<refentry id="xm2gb">
+<refentry id="xm2gba">
 
 <refentryinfo>
 <author>
@@ -11,18 +11,18 @@
 </refentryinfo>
 
 <refmeta>
-<refentrytitle>xm2gb</refentrytitle>
+<refentrytitle>xm2gba</refentrytitle>
 <manvolnum>1</manvolnum>
 </refmeta>
 
 <refnamediv>
-<refname>xm2gb</refname>
+<refname>xm2gba</refname>
 <refpurpose>converts Fasttracker ][ eXtended Module (XM) files to Kent's Game Boy music format</refpurpose>
 </refnamediv>
 
 <refsynopsisdiv>
 <cmdsynopsis>
-<command>xm2gb</command>
+<command>xm2gba</command>
 <arg choice="opt" rep="repeat">
   <option>option</option>
 </arg>
@@ -32,7 +32,7 @@
 
 <refsect1><title>Description</title>
 <para>
-<command>xm2gb</command> reads an eXtended Module (XM) file and
+<command>xm2gba</command> reads an eXtended Module (XM) file and
 converts it to the format used by Kent's Game Boy music player.
 </para>
 </refsect1>
@@ -81,7 +81,7 @@ Reads instrument mapping information from <parameter>file</parameter>.
 </term>
 <listitem>
 <para>
-Prefix 6502 assembly labels by <parameter>prefix</parameter>.
+Prefix assembly labels by <parameter>prefix</parameter>.
 </para>
 </listitem>
 </varlistentry>
@@ -188,7 +188,7 @@ To convert <literal>mysong.xm</literal>:
 </para>
 <para>
 <userinput>
-xm2gb mysong.xm
+xm2gba mysong.xm
 </userinput>
 </para>
 <para>
@@ -196,7 +196,7 @@ To convert only channels 0 and 2 of <literal>mysong.xm</literal>:
 </para>
 <para>
 <userinput>
-xm2gb --channels=0,2 mysong.xm
+xm2gba --channels=0,2 mysong.xm
 </userinput>
 </para>
 <para>
@@ -205,7 +205,7 @@ and call the result "middle":
 </para>
 <para>
 <userinput>
-xm2gb --order-start=3 --order-end=5 --label-prefix=middle mysong.xm
+xm2gba --order-start=3 --order-end=5 --label-prefix=middle mysong.xm
 </userinput>
 </para>
 </refsect1>

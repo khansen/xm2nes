@@ -1,18 +1,18 @@
 /*
-    This file is part of xm2gb.
+    This file is part of xm2gba.
 
-    xm2gb is free software: you can redistribute it and/or modify
+    xm2gba is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    xm2gb is distributed in the hope that it will be useful,
+    xm2gba is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with xm2gb.  If not, see <http://www.gnu.org/licenses/>.
+    along with xm2gba.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <stdio.h>
@@ -20,7 +20,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "xm2gb.h"
+#include "xm2gba.h"
 
 #define SET_SPEED_COMMAND_BASE 0xC0
 #define SET_VOLUME_COMMAND_BASE 0xD0
@@ -44,17 +44,17 @@ static void print_chunk(FILE *out, const char *label,
     if (label)
         fprintf(out, "%s:\n", label);
     for (i = 0; i < size / cols; ++i) {
-        fprintf(out, "db ");
+        fprintf(out, ".byte ");
         for (j = 0; j < cols-1; ++j)
-            fprintf(out, "$%.2X,", buf[pos++]);
-        fprintf(out, "$%.2X\n", buf[pos++]);
+            fprintf(out, "0x%.2X,", buf[pos++]);
+        fprintf(out, "0x%.2X\n", buf[pos++]);
     }
     m = size % cols;
     if (m > 0) {
-        fprintf(out, "db ");
+        fprintf(out, ".byte ");
         for (j = 0; j < m-1; ++j)
-            fprintf(out, "$%.2X,", buf[pos++]);
-        fprintf(out, "$%.2X\n", buf[pos++]);
+            fprintf(out, "0x%.2X,", buf[pos++]);
+        fprintf(out, "0x%.2X\n", buf[pos++]);
     }
 }
 
@@ -189,7 +189,7 @@ static int min(int a, int b) { return a < b ? a : b; }
 /**
   Converts the \a channel of the given \a pattern to Game Boy format.
 */
-static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int channel_count,
+static void convert_xm_pattern_to_gba(const struct xm_pattern *pattern, int channel_count,
 				      int channel, const struct instr_mapping *instr_map,
                                       unsigned char **out, int *out_size)
 {
@@ -398,7 +398,7 @@ static void print_pattern_table(int channel_count, int unused_channels,
         if (unused_channels & (1 << chn))
             continue;
 	for (i = 0; i < unique_pattern_count[chn]; ++i)
-	    fprintf(out, "dw %schn%d_ptn%d\n", label_prefix, chn, i);
+	    fprintf(out, ".word %schn%d_ptn%d\n", label_prefix, chn, i);
     }
 }
 
@@ -410,18 +410,18 @@ static void print_song_struct(int channel_count, int unused_channels,
     int chn;
     int order_offset = 0;
     fprintf(out, "%ssong:\n", label_prefix);
+    fprintf(out, ".word %sinstrument_table\n", label_prefix);
+    fprintf(out, ".word %spattern_table\n", label_prefix);
     for (chn = 0; chn < channel_count; ++chn) {
         if (chn >= 4)
             break;
         if (unused_channels & (1 << chn)) {
-            fprintf(out, "db $FF\n");
+            fprintf(out, ".byte 0xFF\n");
         } else {
-            fprintf(out, "db %d,%d\n", order_offset, default_tempo);
+            fprintf(out, ".byte %d,%d\n", order_offset, default_tempo);
             order_offset += order_data_size[chn] + 2;
         }
     }
-    fprintf(out, "dw %sinstrument_table\n", label_prefix);
-    fprintf(out, "dw %spattern_table\n", label_prefix);
     order_offset = 0;
     for (chn = 0; chn < channel_count; ++chn) {
         if (chn >= 4)
@@ -430,17 +430,17 @@ static void print_song_struct(int channel_count, int unused_channels,
             continue;
         print_chunk(out, 0, &order_data[chn * song_length],
                     order_data_size[chn], 16);
-        fprintf(out, "db $FE,%d\n", order_offset); /* loop back to the beginning */
+        fprintf(out, ".byte 0xFE,%d\n", order_offset); /* loop back to the beginning */
         order_offset += order_data_size[chn] + 2;
     }
 }
 
 /**
-  Converts the given \a xm to Game Boy format; writes the RGBDS assembly
+  Converts the given \a xm to Game Boy format; writes the assembly
   language representation of the song to \a out.
 */
-void convert_xm_to_gb(const struct xm *xm,
-                       const struct xm2gb_options *options,
+void convert_xm_to_gba(const struct xm *xm,
+                       const struct xm2gba_options *options,
                        FILE *out)
 {
     int chn;
@@ -472,20 +472,25 @@ void convert_xm_to_gb(const struct xm *xm,
     order_data = (unsigned char *)malloc(xm->header.channel_count * song_length * sizeof(unsigned char));
     order_data_size = (int *)malloc(xm->header.channel_count * sizeof(int));
 
+    /* Step 0. Print preamble */
+    fprintf(out, ".section .rodata\n");
+    fprintf(out, ".global %ssong\n", options->label_prefix);
+    fprintf(out, ".extern %sinstrument_table\n", options->label_prefix);
+
     /* Step 1. Find the patterns that are actually used. */
     find_used_patterns(song_length, xm->header.pattern_order_table + order_start_offset, &used_patterns_set);
 
     /* Step 2. Find, convert and print unique patterns. */
     for (chn = 0; chn < xm->header.channel_count; ++chn) {
-	int i;
+        int i;
         if (!((1 << chn) & options->channels)) {
             unused_channels |= 1 << chn;
             continue;
         }
 
-	unique_pattern_indexes[chn] = (unsigned char *)malloc(xm->header.pattern_count * sizeof(unsigned char));
-	find_unique_patterns_for_channel(xm, chn, used_patterns_set,
-                                         unique_pattern_indexes[chn], &unique_pattern_count[chn]);
+        unique_pattern_indexes[chn] = (unsigned char *)malloc(xm->header.pattern_count * sizeof(unsigned char));
+        find_unique_patterns_for_channel(xm, chn, used_patterns_set,
+                                            unique_pattern_indexes[chn], &unique_pattern_count[chn]);
 
         {
             int j;
@@ -503,37 +508,37 @@ void convert_xm_to_gb(const struct xm *xm,
             }
         }
 
-	if (chn >= 4) {
-            int j;
-           fprintf(stderr, "ignoring contents of channel %d; patterns \n", chn);
-            for (j = 0; j < unique_pattern_count[chn]; ++j) {
-                int pi = unique_pattern_indexes[chn][j];
-	        if (!is_pattern_empty_for_channel(&xm->patterns[pi], xm->header.channel_count, chn))
-                    fprintf(stderr, " %d", pi);
-            }
-            fprintf(stderr, "\n");
-	    continue;
-	}
+        if (chn >= 4) {
+                int j;
+            fprintf(stderr, "ignoring contents of channel %d; patterns \n", chn);
+                for (j = 0; j < unique_pattern_count[chn]; ++j) {
+                    int pi = unique_pattern_indexes[chn][j];
+                if (!is_pattern_empty_for_channel(&xm->patterns[pi], xm->header.channel_count, chn))
+                        fprintf(stderr, " %d", pi);
+                }
+                fprintf(stderr, "\n");
+            continue;
+        }
 
-	for (i = 0; i < unique_pattern_count[chn]; ++i) {
-	    unsigned char *data;
-	    int data_size;
-	    char label[256];
-            int pi = unique_pattern_indexes[chn][i];
-	    convert_xm_pattern_to_gb(&xm->patterns[pi], xm->header.channel_count,
-                                      chn, options->instr_map, &data, &data_size);
-	    if (data_size >= 256) {
-                fprintf(stderr, "pattern %d, channel %d exceeds 256 bytes in size (%d)\n", pi, chn, data_size);
-            }
-	    sprintf(label, "%schn%d_ptn%d", options->label_prefix, chn, i);
-	    print_chunk(out, label, data, data_size, 16);
-	    free(data);
-	}
+        for (i = 0; i < unique_pattern_count[chn]; ++i) {
+            unsigned char *data;
+            int data_size;
+            char label[256];
+                int pi = unique_pattern_indexes[chn][i];
+            convert_xm_pattern_to_gba(&xm->patterns[pi], xm->header.channel_count,
+                                        chn, options->instr_map, &data, &data_size);
+            if (data_size >= 256) {
+                    fprintf(stderr, "pattern %d, channel %d exceeds 256 bytes in size (%d)\n", pi, chn, data_size);
+                }
+            sprintf(label, "%schn%d_ptn%d", options->label_prefix, chn, i);
+            print_chunk(out, label, data, data_size, 16);
+            free(data);
+        }
     }
 
     /* Step 3. Create order tables. */
     {
-	int pattern_offset = 0;
+        int pattern_offset = 0;
         for (chn = 0; chn < xm->header.channel_count; ++chn) {
             if (unused_channels & (1 << chn))
                 continue;
@@ -543,11 +548,12 @@ void convert_xm_to_gb(const struct xm *xm,
                                               unique_pattern_count[chn], pattern_offset,
                                               &order_data[chn * song_length],
                                               &order_data_size[chn]);
-	    pattern_offset += unique_pattern_count[chn];
+            pattern_offset += unique_pattern_count[chn];
         }
     }
 
     /* Step 4. Print the pattern pointer table. */
+    fprintf(out, ".align 4\n");
     print_pattern_table(xm->header.channel_count, unused_channels,
                         unique_pattern_count, options->label_prefix, out);
 

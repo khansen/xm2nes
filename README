@@ -1,7 +1,7 @@
-This is xm2gb, a tool that converts Fasttracker ][ eXtended Module (XM)
+This is xm2gba, a tool that converts Fasttracker ][ eXtended Module (XM)
 files to a format suitable for use by Kent's Game Boy music player.
 
 See INSTALL for installation instructions.
 
-See doc/index.html for documentation, or do "man xm2gb" after
+See doc/index.html for documentation, or do "man xm2gba" after
 installation.

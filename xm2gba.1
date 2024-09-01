@@ -1,5 +1,5 @@
 '\" t
-.\"     Title: xm2gb
+.\"     Title: xm2gba
 .\"    Author: Kent Hansen
 .\" Generator: DocBook XSL Stylesheets v1.74.3 <http://docbook.sf.net/>
 .\"      Date: 12/27/2009
@@ -7,7 +7,7 @@
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "XM2GB" "1" "12/27/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "xm2gba" "1" "12/27/2009" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -19,14 +19,14 @@
 .\" * MAIN CONTENT STARTS HERE *
 .\" -----------------------------------------------------------------
 .SH "NAME"
-xm2gb \- converts Fasttracker ][ eXtended Module (XM) files to Kent\'s Game Boy music format
+xm2gba \- converts Fasttracker ][ eXtended Module (XM) files to Kent\'s Game Boy music format
 .SH "SYNOPSIS"
-.HP \w'\fBxm2gb\fR\ 'u
-\fBxm2gb\fR [\fBoption\fR...] {file}
+.HP \w'\fBxm2gba\fR\ 'u
+\fBxm2gba\fR [\fBoption\fR...] {file}
 .SH "DESCRIPTION"
 .PP
 
-\fBxm2gb\fR
+\fBxm2gba\fR
 reads an eXtended Module (XM) file and converts it to the format used by Kent\'s Game Boy music player\&.
 .SH "OPTIONS"
 .PP
@@ -50,7 +50,7 @@ Reads instrument mapping information from
 .PP
 \fB\-\-label\-prefix\fR=\fIprefix\fR
 .RS 4
-Prefix 6502 assembly labels by
+Prefix assembly labels by
 \fIprefix\fR\&.
 .RE
 .PP
@@ -102,19 +102,19 @@ To convert
 mysong\&.xm:
 .PP
 
-\fB xm2gb mysong\&.xm \fR
+\fB xm2gba mysong\&.xm \fR
 .PP
 To convert only channels 0 and 2 of
 mysong\&.xm:
 .PP
 
-\fB xm2gb \-\-channels=0,2 mysong\&.xm \fR
+\fB xm2gba \-\-channels=0,2 mysong\&.xm \fR
 .PP
 To convert only the order table range [3,5] of
 mysong\&.xm, and call the result "middle":
 .PP
 
-\fB xm2gb \-\-order\-start=3 \-\-order\-end=5 \-\-label\-prefix=middle mysong\&.xm \fR
+\fB xm2gba \-\-order\-start=3 \-\-order\-end=5 \-\-label\-prefix=middle mysong\&.xm \fR
 .SH "UNSUPPORTED EFFECTS"
 .PP
 The following effects are not supported, or only partially supported, in this version\&. Unsupported effects are ignored by the converter\&.

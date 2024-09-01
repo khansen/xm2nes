@@ -1,18 +1,18 @@
 /*
-    This file is part of xm2gb.
+    This file is part of xm2gba.
 
-    xm2gb is free software: you can redistribute it and/or modify
+    xm2gba is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    xm2gb is distributed in the hope that it will be useful,
+    xm2gba is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with xm2gb.  If not, see <http://www.gnu.org/licenses/>.
+    along with xm2gba.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <stdio.h>
@@ -21,15 +21,15 @@
 #include <assert.h>
 #include <ctype.h>
 
-#include "xm2gb.h"
+#include "xm2gba.h"
 
-static char program_version[] = "xm2gb 4.0.1";
+static char program_version[] = "xm2gba 4.0.1";
 
 /* Prints usage message and exits. */
 static void usage()
 {
     printf(
-        "Usage: xm2gb [--output=FILE] [--channels=CHANNELS]\n"
+        "Usage: xm2gba [--output=FILE] [--channels=CHANNELS]\n"
         "              [--order-start=OFFSET] [--order-end=OFFSET]\n"
         "              [--label-prefix=PREFIX]\n"
         "              [--instruments-map=FILE] [--verbose]\n"
@@ -41,15 +41,15 @@ static void usage()
 /* Prints help message and exits. */
 static void help()
 {
-    printf("Usage: xm2gb [OPTION...] FILE\n"
-           "xm2gb converts Fasttracker ][ eXtended Module (XM) files to Kent's Game Boy music format.\n\n"
+    printf("Usage: xm2gba [OPTION...] FILE\n"
+           "xm2gba converts Fasttracker ][ eXtended Module (XM) files to Kent's Game Boy music format.\n\n"
            "Options:\n\n"
            "  --output=FILE                   Store output in FILE\n"
            "  --channels=CHANNELS             Process only CHANNELS (0,1,2,3)\n"
            "  --order-start=OFFSET            Start offset in pattern order table (0)\n"
            "  --order-end=OFFSET              End offset in pattern order table (song_length-1)\n"
            "  --instruments-map=FILE          Read instrument mapping information from FILE\n"
-           "  --label-prefix=PREFIX           Use PREFIX as the prefix of 6502 assembly labels\n"
+           "  --label-prefix=PREFIX           Use PREFIX as the prefix of assembly labels\n"
            "  --verbose                       Print progress information to standard output\n"  
            "  --help                          Give this help list\n"
            "  --usage                         Give a short usage message\n"
@@ -98,7 +98,7 @@ static int parse_instruments_map_file(const char *path, struct instr_mapping *ma
     int defined_set[128/(sizeof(int)*8)];
     FILE *fp = fopen(path, "rt");
     if (!fp) {
-        fprintf(stderr, "xm2gb: failed to open `%s' for reading\n", path);
+        fprintf(stderr, "xm2gba: failed to open `%s' for reading\n", path);
         return 0;
     }
     memset(defined_set, 0, sizeof(defined_set));
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
     const char *output_filename = 0;
     const char *instruments_map_filename = 0;
     const char *label_prefix = 0;
-    struct xm2gb_options options;
+    struct xm2gba_options options;
     struct instr_mapping instr_map[128];
     {
         unsigned char i;
@@ -257,8 +257,8 @@ int main(int argc, char *argv[])
                 } else if (!strcmp("version", opt)) {
                     version();
                 } else {
-                    fprintf(stderr, "xm2gb: unrecognized option `%s'\n"
-			    "Try `xm2gb --help' or `xm2gb --usage' for more information.\n", p);
+                    fprintf(stderr, "xm2gba: unrecognized option `%s'\n"
+			    "Try `xm2gba --help' or `xm2gba --usage' for more information.\n", p);
                     return(-1);
                 }
             } else {
@@ -268,13 +268,13 @@ int main(int argc, char *argv[])
     }
 
     if (!input_filename) {
-        fprintf(stderr, "xm2gb: no filename given\n"
-                        "Try `xm2gb --help' or `xm2gb --usage' for more information.\n");
+        fprintf(stderr, "xm2gba: no filename given\n"
+                        "Try `xm2gba --help' or `xm2gba --usage' for more information.\n");
         return(-1);
     }
 
     if (!options.channels) {
-        fprintf(stderr, "xm2gb: --channels argument needs to include at least one channel\n");
+        fprintf(stderr, "xm2gba: --channels argument needs to include at least one channel\n");
         return(-1);
     }
 
@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
         else {
             out = fopen(output_filename, "wt");
             if (!out) {
-                fprintf(stderr, "xm2gb: failed to open `%s' for writing\n", output_filename);
+                fprintf(stderr, "xm2gba: failed to open `%s' for writing\n", output_filename);
                 return(-1);
             }
         }
@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
             FILE *in;
             in = fopen(input_filename, "rb");
             if (!in) {
-                fprintf(stderr, "xm2gb: failed to open `%s' for reading\n", input_filename);
+                fprintf(stderr, "xm2gba: failed to open `%s' for reading\n", input_filename);
                 return(-1);
             }
             if (verbose)
@@ -343,8 +343,8 @@ int main(int argc, char *argv[])
             strncpy(prefix, begin, len);
             options.label_prefix = prefix;
 
-            fprintf(stdout, "; Generated from %s by %s\n", input_filename, program_version);
-            convert_xm_to_gb(&xm, &options, out);
+            fprintf(stdout, "@ Generated from %s by %s\n", input_filename, program_version);
+            convert_xm_to_gba(&xm, &options, out);
 
             free(prefix);
         }

@@ -1,4 +1,4 @@
 
-		xm2gb installation
+		xm2gba installation
 
-Just do "make" followed by "make install".
+Just do "make" followed by "sudo make install".
