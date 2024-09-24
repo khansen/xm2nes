@@ -22,6 +22,7 @@
 
 #include "xm2gb.h"
 
+#define SET_INSTRUMENT_COMMAND_BASE 0xB0
 #define SET_SPEED_COMMAND_BASE 0xC0
 #define SET_VOLUME_COMMAND_BASE 0xD0
 #define SET_EFFECT_COMMAND_BASE 0xE0
@@ -291,8 +292,12 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                 }
 
                 if (n->instrument && (n->instrument != lastinstr)) {
-                    data[pos++] = SET_INSTRUMENT_COMMAND;
-                    data[pos++] = instr_map[n->instrument - 1].target_instr;
+                    if (instr_map[n->instrument - 1].target_instr < 0x10) {
+                        data[pos++] = SET_INSTRUMENT_COMMAND_BASE | instr_map[n->instrument - 1].target_instr;
+                    } else {
+                        data[pos++] = SET_INSTRUMENT_COMMAND;
+                        data[pos++] = instr_map[n->instrument - 1].target_instr;
+                    }
                     lastinstr = n->instrument;
                     /* setting instrument resets effect */
                     lastefftype = 0;
