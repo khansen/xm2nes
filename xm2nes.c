@@ -384,7 +384,7 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
                             data[pos++] = SET_SPEED_COMMAND_BASE | n->effect_param;
                         } else {
                             data[pos++] = SET_SPEED_COMMAND;
-                            data[pos++] = n->effect_param + 1;
+                            data[pos++] = n->effect_param;
                         }
                         break;
 
@@ -418,7 +418,7 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
                                 data[pos++] = SET_SPEED_COMMAND_BASE | n->effect_param;
                             } else {
                                 data[pos++] = SET_SPEED_COMMAND;
-                                data[pos++] = n->effect_param + 1;
+                                data[pos++] = n->effect_param;
                             }
                             break;
                         default:
