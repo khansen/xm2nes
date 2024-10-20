@@ -612,7 +612,7 @@ void convert_xm_to_nes(const struct xm *xm,
 
     /* Step 5. Print song header + order tables. */
     print_song_struct(xm->header.channel_count, unused_channels,
-                      xm->header.default_tempo + 1, order_data_size,
+                      xm->header.default_tempo, order_data_size,
                       order_data, song_length,
                       options->label_prefix, out);
 

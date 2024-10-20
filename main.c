@@ -23,7 +23,7 @@
 
 #include "xm2nes.h"
 
-static char program_version[] = "xm2nes 6.0.0";
+static char program_version[] = "xm2nes 6.0.1";
 
 /* Prints usage message and exits. */
 static void usage()
