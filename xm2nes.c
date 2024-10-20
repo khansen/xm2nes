@@ -414,8 +414,12 @@ static void convert_xm_pattern_to_nes(const struct xm_pattern *pattern, int chan
                 if (n->effect_type != 0) {
                     switch (n->effect_type) {
                         case 0xF:
-                            data[pos++] = SET_SPEED_COMMAND;
-                            data[pos++] = n->effect_param + 1;
+                            if (n->effect_param < 0x10) {
+                                data[pos++] = SET_SPEED_COMMAND_BASE | n->effect_param;
+                            } else {
+                                data[pos++] = SET_SPEED_COMMAND;
+                                data[pos++] = n->effect_param + 1;
+                            }
                             break;
                         default:
                             fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
