@@ -2,6 +2,7 @@ INSTALL = install
 CFLAGS = -Wall -g
 LFLAGS =
 OBJS = xm2gb.o xm.o main.o
+CC = x86_64-w64-mingw32-gcc
 
 prefix = /usr/local
 datarootdir = $(prefix)/share
