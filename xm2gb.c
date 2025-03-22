@@ -263,130 +263,124 @@ static void convert_xm_pattern_to_gb(int pi, const struct xm_pattern *pattern, i
                 continue;
             }
 
-            switch (channel) {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                if (n->volume != 0) {
-                    if ((n->volume >= 0x10) && (n->volume < 0x50)) {
-                        /* set new channel volume */
-                        data[pos++] = SET_VOLUME_COMMAND_BASE | ((n->volume - 0x10) >> 2);
-                    } else if ((n->volume >= 0xc0) && (n->volume < 0xd0)) {
-                        /* set panning */
-                        if (n->volume < 0xc4)
-                            data[pos++] = PAN_LEFT_COMMAND;
-                        else if (n->volume < 0xcc)
-                            data[pos++] = PAN_CENTER_COMMAND;
-                        else
-                            data[pos++] = PAN_RIGHT_COMMAND;
-                    } else {
-                        fprintf(stderr, "ignoring volume value %2x in channel %d, row %d\n",
-                            n->volume, channel, row+i);
+            if (n->volume != 0) {
+                if ((n->volume >= 0x10) && (n->volume < 0x50)) {
+                    /* set new channel volume */
+                    data[pos++] = SET_VOLUME_COMMAND_BASE | ((n->volume - 0x10) >> 2);
+                } else if ((n->volume >= 0xc0) && (n->volume < 0xd0)) {
+                    /* set panning */
+                    if (n->volume < 0xc4)
+                        data[pos++] = PAN_LEFT_COMMAND;
+                    else if (n->volume < 0xcc)
+                        data[pos++] = PAN_CENTER_COMMAND;
+                    else
+                        data[pos++] = PAN_RIGHT_COMMAND;
+                } else {
+                    fprintf(stderr, "ignoring volume value %2x in channel %d, row %d\n",
+                        n->volume, channel, row+i);
+                }
+            }
+
+            if (n->effect_type == 0 && lastefftype != 0) {
+                /* Clear effect */
+                data[pos++] = SET_EFFECT_COMMAND_BASE;
+            }
+
+            if (n->instrument && (n->instrument != lastinstr)) {
+                if (instr_map[n->instrument - 1].target_instr < 0x10) {
+                    data[pos++] = SET_INSTRUMENT_COMMAND_BASE | instr_map[n->instrument - 1].target_instr;
+                } else {
+                    data[pos++] = SET_INSTRUMENT_COMMAND;
+                    data[pos++] = instr_map[n->instrument - 1].target_instr;
+                }
+                lastinstr = n->instrument;
+                /* setting instrument resets effect */
+                lastefftype = 0;
+                lasteffparam = 0;
+            }
+
+            if (n->effect_type != 0 && ((n->effect_type != lastefftype)
+                || ((n->effect_param != lasteffparam) && (n->effect_param != 0)))) {
+                switch (n->effect_type) {
+                    case 0x1:
+                    case 0x2:
+                    case 0x3:
+                    case 0x4:
+                    case 0x5: /* This is actually arpeggio -- see hack in xm.c */
+                    case 0x6:
+                    case 0x7:
+                    case 0xA: {
+                        unsigned char tp = n->effect_type;
+                        if (tp == 0xA)
+                            tp = 6; /* volume slide mapped to 6 */
+                        data[pos++] = SET_EFFECT_COMMAND_BASE | tp;
+                        if (n->effect_param != 0)
+                            lasteffparam = n->effect_param;
+                        data[pos++] = lasteffparam;
+                        break;
                     }
-                }
 
-                if (n->effect_type == 0 && lastefftype != 0) {
-                    /* Clear effect */
-                    data[pos++] = SET_EFFECT_COMMAND_BASE;
-                }
+                    case 0x8:
+                    if (n->effect_param < 0x40)
+                        data[pos++] = PAN_LEFT_COMMAND;
+                    else if (n->effect_param < 0xC0)
+                        data[pos++] = PAN_CENTER_COMMAND;
+                    else
+                        data[pos++] = PAN_RIGHT_COMMAND;
+                    break;
 
-                if (n->instrument && (n->instrument != lastinstr)) {
-                    if (instr_map[n->instrument - 1].target_instr < 0x10) {
-                        data[pos++] = SET_INSTRUMENT_COMMAND_BASE | instr_map[n->instrument - 1].target_instr;
-                    } else {
-                        data[pos++] = SET_INSTRUMENT_COMMAND;
-                        data[pos++] = instr_map[n->instrument - 1].target_instr;
-                    }
-                    lastinstr = n->instrument;
-                    /* setting instrument resets effect */
-                    lastefftype = 0;
-                    lasteffparam = 0;
-                }
+                    case 0xC:
+                    data[pos++] = SET_VOLUME_COMMAND_BASE | (n->effect_param >> 2);
+                    break;
 
-                if (n->effect_type != 0 && ((n->effect_type != lastefftype)
-                    || ((n->effect_param != lasteffparam) && (n->effect_param != 0)))) {
-                    switch (n->effect_type) {
-                        case 0x1:
-                        case 0x2:
-                        case 0x3:
-                        case 0x4:
-                        case 0x5: /* This is actually arpeggio -- see hack in xm.c */
-                        case 0x6:
-                        case 0x7:
-                        case 0xA: {
-                            unsigned char tp = n->effect_type;
-                            if (tp == 0xA)
-                                tp = 6; /* volume slide mapped to 6 */
-                            data[pos++] = SET_EFFECT_COMMAND_BASE | tp;
-                            if (n->effect_param != 0)
-                                lasteffparam = n->effect_param;
-                            data[pos++] = lasteffparam;
+                    case 0xE:
+                    switch ((n->effect_param & 0xF0) >> 4) {
+                        case 0x8: /* pulse modulation */
+                            data[pos++] = SET_EFFECT_COMMAND_BASE | 9;
+                            data[pos++] = n->effect_param & 0x0F;
                             break;
-                        }
-
-                        case 0x8:
-                        if (n->effect_param < 0x40)
-                            data[pos++] = PAN_LEFT_COMMAND;
-                        else if (n->effect_param < 0xC0)
-                            data[pos++] = PAN_CENTER_COMMAND;
-                        else
-                            data[pos++] = PAN_RIGHT_COMMAND;
-                        break;
-
-                        case 0xC:
-                        data[pos++] = SET_VOLUME_COMMAND_BASE | (n->effect_param >> 2);
-                        break;
-
-                        case 0xE:
-                        switch ((n->effect_param & 0xF0) >> 4) {
-                            case 0x8: /* pulse modulation */
-                                data[pos++] = SET_EFFECT_COMMAND_BASE | 9;
-                                data[pos++] = n->effect_param & 0x0F;
-                                break;
-                            case 0xC: /* note cut */
-                                data[pos++] = SET_EFFECT_COMMAND_BASE | 8;
-                                data[pos++] = n->effect_param & 0x0F;
-                                break;
-                            default:
-                                fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
-                                        n->effect_type, n->effect_param, channel, row+i);
-                                break;
-                        }
-                        break;
-
-                        case 0xF:
-                        if (n->effect_param < 0x10) {
-                            data[pos++] = SET_SPEED_COMMAND_BASE | n->effect_param;
-                        } else {
-                            data[pos++] = SET_SPEED_COMMAND;
-                            data[pos++] = n->effect_param + 1;
-                        }
-                        break;
-
+                        case 0xC: /* note cut */
+                            data[pos++] = SET_EFFECT_COMMAND_BASE | 8;
+                            data[pos++] = n->effect_param & 0x0F;
+                            break;
                         default:
-                        fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
-                            n->effect_type, n->effect_param, channel, row+i);
-                        break;
+                            fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
+                                    n->effect_type, n->effect_param, channel, row+i);
+                            break;
+                    }
+                    break;
+
+                    case 0xF:
+                    if (n->effect_param < 0x10) {
+                        data[pos++] = SET_SPEED_COMMAND_BASE | n->effect_param;
+                    } else {
+                        data[pos++] = SET_SPEED_COMMAND;
+                        data[pos++] = n->effect_param + 1;
+                    }
+                    break;
+
+                    default:
+                    fprintf(stderr, "ignoring effect %x%.2x in channel %d, row %d\n",
+                        n->effect_type, n->effect_param, channel, row+i);
+                    break;
+                }
+            }
+            lastefftype = n->effect_type;
+
+            if (n->note != 0) {
+                if (n->note == 0x61) {
+                data[pos++] = RELEASE_COMMAND;
+                data[pos++] = END_ROW_COMMAND;
+                } else {
+                    data[pos++] = n->note + instr_map[lastinstr-1].transpose;
+                    if (data[pos-1] >= 0x80) {
+                        fprintf(stderr, "note overflow in pattern %d, channel %d, row %d\n",
+                            pi, channel, row+i);
+                        data[pos-1] = 0;
                     }
                 }
-                lastefftype = n->effect_type;
-
-                if (n->note != 0) {
-                    if (n->note == 0x61) {
-                    data[pos++] = RELEASE_COMMAND;
-                    data[pos++] = END_ROW_COMMAND;
-                    } else {
-                        data[pos++] = n->note + instr_map[lastinstr-1].transpose;
-                        if (data[pos-1] >= 0x80) {
-                            fprintf(stderr, "note overflow in pattern %d, channel %d, row %d\n",
-                                pi, channel, row+i);
-                            data[pos-1] = 0;
-                        }
-                    }
-                } else
-                    data[pos++] = END_ROW_COMMAND;
-                break;
+            } else {
+                data[pos++] = END_ROW_COMMAND;
             }
         }
     }
@@ -395,51 +389,43 @@ static void convert_xm_pattern_to_gb(int pi, const struct xm_pattern *pattern, i
     *out_size = pos;
 }
 
-static void print_pattern_table(int channel_count, int unused_channels,
+static void print_pattern_table(int channel,
                                 int *unique_pattern_count,
                                 const char *label_prefix, FILE *out)
 {
-    int chn;
-    fprintf(out, "%spattern_table:\n", label_prefix);
-    for (chn = 0; chn < channel_count; ++chn) {
-	int i;
-        if (unused_channels & (1 << chn))
-            continue;
-	for (i = 0; i < unique_pattern_count[chn]; ++i)
-	    fprintf(out, ".dw %schn%d_ptn%d\n", label_prefix, chn, i);
+    int i;
+    fprintf(out, "%schn%d_pattern_table:\n", label_prefix, channel);
+	for (i = 0; i < unique_pattern_count[channel]; ++i) {
+	    fprintf(out, ".dw %schn%d_ptn%d\n", label_prefix, channel, i);
     }
 }
 
+static void print_order_table(int channel,
+    int *order_data_size,
+    unsigned char *order_data,
+    int song_length,
+    const char *label_prefix, FILE *out)
+{
+    fprintf(out, "%schn%d_order:\n", label_prefix, channel);
+    print_chunk(out, 0, &order_data[channel * song_length],
+                order_data_size[channel], 16);
+    fprintf(out, ".db $FE,0\n"); /* loop back to the beginning */
+}
+
 static void print_song_struct(int channel_count, int unused_channels,
-                              int default_tempo, int *order_data_size,
-                              unsigned char *order_data, int song_length,
+                              int default_tempo,
                               const char *label_prefix, FILE *out)
 {
     int chn;
-    int order_offset = 0;
     fprintf(out, "%ssong:\n", label_prefix);
+    fprintf(out, ".db %d ; channel count \n", channel_count);
+    fprintf(out, ".db %d ; speed\n", default_tempo);
     for (chn = 0; chn < channel_count; ++chn) {
-        if (chn >= 4)
-            break;
         if (unused_channels & (1 << chn)) {
-            fprintf(out, ".db $FF\n");
+            fprintf(out, ".dw 0, 0, 0, 0\n");
         } else {
-            fprintf(out, ".db %d,%d\n", order_offset, default_tempo);
-            order_offset += order_data_size[chn] + 2;
+            fprintf(out, ".dw %schn%d_order, %schn%d_pattern_table, %schn%d_instrument_table, 0\n", label_prefix, chn, label_prefix, chn, label_prefix, chn);
         }
-    }
-    fprintf(out, ".dw %sinstrument_table\n", label_prefix);
-    fprintf(out, ".dw %spattern_table\n", label_prefix);
-    order_offset = 0;
-    for (chn = 0; chn < channel_count; ++chn) {
-        if (chn >= 4)
-            break;
-        if (unused_channels & (1 << chn))
-            continue;
-        print_chunk(out, 0, &order_data[chn * song_length],
-                    order_data_size[chn], 16);
-        fprintf(out, ".db $FE,%d\n", order_offset); /* loop back to the beginning */
-        order_offset += order_data_size[chn] + 2;
     }
 }
 
@@ -485,14 +471,14 @@ void convert_xm_to_gb(const struct xm *xm,
 
     /* Step 2. Find, convert and print unique patterns. */
     for (chn = 0; chn < xm->header.channel_count; ++chn) {
-	int i;
+        int i;
         if (!((1 << chn) & options->channels)) {
             unused_channels |= 1 << chn;
             continue;
         }
 
-	unique_pattern_indexes[chn] = (unsigned char *)malloc(xm->header.pattern_count * sizeof(unsigned char));
-	find_unique_patterns_for_channel(xm, chn, used_patterns_set,
+        unique_pattern_indexes[chn] = (unsigned char *)malloc(xm->header.pattern_count * sizeof(unsigned char));
+        find_unique_patterns_for_channel(xm, chn, used_patterns_set,
                                          unique_pattern_indexes[chn], &unique_pattern_count[chn]);
 
         {
@@ -511,58 +497,53 @@ void convert_xm_to_gb(const struct xm *xm,
             }
         }
 
-	if (chn >= 4) {
-            int j;
-           fprintf(stderr, "ignoring contents of channel %d; patterns \n", chn);
-            for (j = 0; j < unique_pattern_count[chn]; ++j) {
-                int pi = unique_pattern_indexes[chn][j];
-	        if (!is_pattern_empty_for_channel(&xm->patterns[pi], xm->header.channel_count, chn))
-                    fprintf(stderr, " %d", pi);
-            }
-            fprintf(stderr, "\n");
-	    continue;
-	}
-
-	for (i = 0; i < unique_pattern_count[chn]; ++i) {
-	    unsigned char *data;
-	    int data_size;
-	    char label[256];
+        for (i = 0; i < unique_pattern_count[chn]; ++i) {
+            unsigned char *data;
+            int data_size;
+            char label[256];
             int pi = unique_pattern_indexes[chn][i];
-	    convert_xm_pattern_to_gb(pi, &xm->patterns[pi], xm->header.channel_count,
+            convert_xm_pattern_to_gb(pi, &xm->patterns[pi], xm->header.channel_count,
                                       chn, options->instr_map, &data, &data_size);
-	    if (data_size >= 256) {
+            if (data_size >= 256) {
                 fprintf(stderr, "pattern %d, channel %d exceeds 256 bytes in size (%d)\n", pi, chn, data_size);
             }
-	    sprintf(label, "%schn%d_ptn%d", options->label_prefix, chn, i);
-	    print_chunk(out, label, data, data_size, 16);
-	    free(data);
-	}
+            sprintf(label, "%schn%d_ptn%d", options->label_prefix, chn, i);
+            print_chunk(out, label, data, data_size, 16);
+            free(data);
+        }
     }
 
-    /* Step 3. Create order tables. */
+    /* Step 3. Create and print order tables. */
     {
-	int pattern_offset = 0;
         for (chn = 0; chn < xm->header.channel_count; ++chn) {
             if (unused_channels & (1 << chn))
                 continue;
             calculate_order_table_for_channel(xm, chn, order_start_offset,
                                               order_end_offset,
                                               unique_pattern_indexes[chn],
-                                              unique_pattern_count[chn], pattern_offset,
+                                              unique_pattern_count[chn], 0,
                                               &order_data[chn * song_length],
                                               &order_data_size[chn]);
-	    pattern_offset += unique_pattern_count[chn];
         }
     }
 
-    /* Step 4. Print the pattern pointer table. */
-    print_pattern_table(xm->header.channel_count, unused_channels,
-                        unique_pattern_count, options->label_prefix, out);
+    /* Step 4. Print the pattern pointer tables. */
+    for (chn = 0; chn < xm->header.channel_count; ++chn) {
+        if (unused_channels & (1 << chn))
+            continue;
+        print_pattern_table(chn, unique_pattern_count, options->label_prefix, out);
+    }
 
-    /* Step 5. Print song header + order tables. */
+    /* Step 5. Print the pattern order tables. */
+    for (chn = 0; chn < xm->header.channel_count; ++chn) {
+        if (unused_channels & (1 << chn))
+            continue;
+        print_order_table(chn, order_data_size, order_data, song_length, options->label_prefix, out);
+    }
+
+    /* Step 6. Print song header. */
     print_song_struct(xm->header.channel_count, unused_channels,
-                      xm->header.default_tempo + 1, order_data_size,
-                      order_data, song_length,
+                      xm->header.default_tempo + 1,
                       options->label_prefix, out);
 
     /* Cleanup */

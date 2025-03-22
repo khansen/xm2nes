@@ -23,7 +23,7 @@
 
 #include "xm2gb.h"
 
-static char program_version[] = "xm2gb 5.0.0";
+static char program_version[] = "xm2gb 6.0.0-rc1";
 
 /* Prints usage message and exits. */
 static void usage()
@@ -195,6 +195,43 @@ static int parse_instruments_map_file(const char *path, struct instr_mapping *ma
     return ok;
 }
 
+int parse_channels(const char *p, int *channels_out)
+{
+    int channels = 0;
+    int ok = 1;
+    while (*p) {
+        int parsed_integer;
+        char *endp;
+        if (channels) {
+            if (*p != ',') {
+                fprintf(stderr, "--channels: Expected channel separator ',', but found '%c'\n", *p);
+                ok = 0;
+                break;
+            }
+            ++p;
+        }
+        parsed_integer = strtol(p, &endp, 0);
+        if ((endp == p) || (parsed_integer < 0) || (parsed_integer >= 32)) {
+            fprintf(stderr, "--channels: Invalid channel specifier: %s\n", p);
+            ok = 0;
+            break;
+        }
+        if (channels & (1 << parsed_integer)) {
+            fprintf(stderr, "--channels: Duplicate channel specifier: %d\n", parsed_integer);
+            ok = 0;
+            break;
+        }
+        channels |= 1 << parsed_integer;
+        p = endp;
+    }
+    if (!channels) {
+        fprintf(stderr, "--channels: Expected at least one channel\n");
+        ok = 0;
+    }
+    *channels_out = channels;
+    return ok;
+}
+
 /**
   Program entrypoint.
 */
@@ -215,7 +252,7 @@ int main(int argc, char *argv[])
         }
     }
     options.instr_map = instr_map;
-    options.channels = 0xF;
+    options.channels = 0xFFFF;
     options.label_prefix = 0;
     options.order_start_offset = 0;
     options.order_end_offset = -1;
@@ -229,17 +266,8 @@ int main(int argc, char *argv[])
                     output_filename = &opt[7];
                 } else if (!strncmp("channels=", opt, 9)) {
                     const char *p = &opt[9];
-                    options.channels = 0;
-                    if (*p) {
-                        options.channels |= 1 << (*p - '0');
-                        while (*(++p)) {
-                            if (*(p++) != ',')
-                                break;
-                            if (*p)
-                                options.channels |= 1 << (*p - '0');
-			}
-		    }
-                    options.channels &= 0xF;
+                    if (!parse_channels(p, &options.channels))
+                        return(-1);
                 } else if (!strncmp("instruments-map=", opt, 16)) {
                     instruments_map_filename = &opt[16];
                 } else if (!strncmp("label-prefix=", opt, 13)) {
