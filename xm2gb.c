@@ -33,6 +33,7 @@
 #define PAN_LEFT_COMMAND 0xF4
 #define PAN_CENTER_COMMAND 0xF5
 #define PAN_RIGHT_COMMAND 0xF6
+#define SET_GLOBAL_VOL_COMMAND 0xF7
 
 /**
   Prints \a size bytes of data defined by \a buf to \a out.
@@ -362,6 +363,11 @@ static void convert_xm_pattern_to_gb(int pi, const struct xm_pattern *pattern, i
                             data[pos++] = SET_SPEED_COMMAND;
                             data[pos++] = n->effect_param + 1;
                         }
+                        break;
+
+                        case 0x10:
+                        data[pos++] = SET_GLOBAL_VOL_COMMAND;
+                        data[pos++] = (n->effect_param < 0x40 ? n->effect_param : 0x3f) >> 2;
                         break;
 
                         default:
