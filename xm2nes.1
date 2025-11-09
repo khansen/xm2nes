@@ -1,13 +1,22 @@
 '\" t
 .\"     Title: xm2nes
 .\"    Author: Kent Hansen
-.\" Generator: DocBook XSL Stylesheets v1.74.3 <http://docbook.sf.net/>
-.\"      Date: 12/27/2009
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\"      Date: 11/09/2025
+.\"    Manual: xm2nes
+.\"    Source: xm2nes 6.0.1
 .\"  Language: English
 .\"
-.TH "XM2NES" "1" "12/27/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "XM2NES" "1" "11/09/2025" "xm2nes 6\&.0\&.1" "xm2nes"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -19,15 +28,14 @@
 .\" * MAIN CONTENT STARTS HERE *
 .\" -----------------------------------------------------------------
 .SH "NAME"
-xm2nes \- converts Fasttracker ][ eXtended Module (XM) files to Kent\'s NES music format
+xm2nes \- converts Fasttracker ][ eXtended Module (XM) files to Kent\*(Aqs NES music format
 .SH "SYNOPSIS"
 .HP \w'\fBxm2nes\fR\ 'u
 \fBxm2nes\fR [\fBoption\fR...] {file}
 .SH "DESCRIPTION"
 .PP
-
 \fBxm2nes\fR
-reads an eXtended Module (XM) file and converts it to the format used by Kent\'s NES music player\&.
+reads an eXtended Module (XM) file and converts it to the format used by Kent\*(Aqs NES music player\&.
 .SH "OPTIONS"
 .PP
 \fB\-\-output\fR=\fIfile\fR
@@ -101,26 +109,21 @@ The output is assembly source code\&.
 To convert
 mysong\&.xm:
 .PP
-
 \fB xm2nes mysong\&.xm \fR
 .PP
 To convert only channels 0 and 2 of
 mysong\&.xm:
 .PP
-
 \fB xm2nes \-\-channels=0,2 mysong\&.xm \fR
 .PP
 To convert only the order table range [3,5] of
 mysong\&.xm, and call the result "middle":
 .PP
-
 \fB xm2nes \-\-order\-start=3 \-\-order\-end=5 \-\-label\-prefix=middle mysong\&.xm \fR
 .SH "UNSUPPORTED EFFECTS"
 .PP
 The following effects are not supported, or only partially supported, in this version\&. Unsupported effects are ignored by the converter\&.
 .PP
-
-.sp
 .RS 4
 .ie n \{\
 \h'-04'\(bu\h'+03'\c
@@ -129,7 +132,7 @@ The following effects are not supported, or only partially supported, in this ve
 .sp -1
 .IP \(bu 2.3
 .\}
-8 (set panning position)\&. The NES audio hardware doesn\'t support panning\&.
+8 (set panning position)\&. The NES audio hardware doesn\*(Aqt support panning\&.
 .RE
 .sp
 .RS 4
@@ -187,10 +190,9 @@ E\&. Only EC (note cut) is supported\&.
 G and above\&.
 .RE
 .sp
-.RE
 .SH "AUTHOR"
 .PP
 \fBKent Hansen\fR
 .RS 4
-Author.
+Author
 .RE

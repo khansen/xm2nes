@@ -1,18 +1,19 @@
-<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"
-  "/sw/share/xml/dtd/docbookx/4.5.0/docbookx.dtd">
-
 <refentry id="xm2nes">
 
 <refentryinfo>
 <author>
 <firstname>Kent</firstname>
 <surname>Hansen</surname>
+<contrib>Author</contrib>
 </author>
 </refentryinfo>
 
 <refmeta>
-<refentrytitle>xm2nes</refentrytitle>
-<manvolnum>1</manvolnum>
+  <refentrytitle>xm2nes</refentrytitle>
+  <manvolnum>1</manvolnum>
+  <refmiscinfo class="source">xm2nes</refmiscinfo>
+  <refmiscinfo class="version">6.0.1</refmiscinfo>
+  <refmiscinfo class="manual">xm2nes</refmiscinfo>
 </refmeta>
 
 <refnamediv>
