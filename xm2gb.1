@@ -1,13 +1,22 @@
 '\" t
 .\"     Title: xm2gb
 .\"    Author: Kent Hansen
-.\" Generator: DocBook XSL Stylesheets v1.74.3 <http://docbook.sf.net/>
-.\"      Date: 12/27/2009
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\"      Date: 02/12/2026
+.\"    Manual: xm2gb
+.\"    Source: xm2gb 5.0.0
 .\"  Language: English
 .\"
-.TH "XM2GB" "1" "12/27/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "XM2GB" "1" "02/12/2026" "xm2gb 5\&.0\&.0" "xm2gb"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -19,15 +28,14 @@
 .\" * MAIN CONTENT STARTS HERE *
 .\" -----------------------------------------------------------------
 .SH "NAME"
-xm2gb \- converts Fasttracker ][ eXtended Module (XM) files to Kent\'s Game Boy music format
+xm2gb \- converts Fasttracker ][ eXtended Module (XM) files to Kent\*(Aqs Game Boy music format
 .SH "SYNOPSIS"
 .HP \w'\fBxm2gb\fR\ 'u
 \fBxm2gb\fR [\fBoption\fR...] {file}
 .SH "DESCRIPTION"
 .PP
-
 \fBxm2gb\fR
-reads an eXtended Module (XM) file and converts it to the format used by Kent\'s Game Boy music player\&.
+reads an eXtended Module (XM) file and converts it to the format used by Kent\*(Aqs Game Boy music player\&.
 .SH "OPTIONS"
 .PP
 \fB\-\-output\fR=\fIfile\fR
@@ -101,26 +109,21 @@ The output is assembly source code\&.
 To convert
 mysong\&.xm:
 .PP
-
 \fB xm2gb mysong\&.xm \fR
 .PP
 To convert only channels 0 and 2 of
 mysong\&.xm:
 .PP
-
 \fB xm2gb \-\-channels=0,2 mysong\&.xm \fR
 .PP
 To convert only the order table range [3,5] of
 mysong\&.xm, and call the result "middle":
 .PP
-
 \fB xm2gb \-\-order\-start=3 \-\-order\-end=5 \-\-label\-prefix=middle mysong\&.xm \fR
 .SH "UNSUPPORTED EFFECTS"
 .PP
 The following effects are not supported, or only partially supported, in this version\&. Unsupported effects are ignored by the converter\&.
 .PP
-
-.sp
 .RS 4
 .ie n \{\
 \h'-04'\(bu\h'+03'\c
@@ -176,10 +179,9 @@ E\&. Only EC (note cut) is supported\&.
 G and above\&.
 .RE
 .sp
-.RE
 .SH "AUTHOR"
 .PP
 \fBKent Hansen\fR
 .RS 4
-Author.
+Author
 .RE
