@@ -74,7 +74,7 @@ static void eat_ws(char *s, int *i)
 static int get_ident(char *s, int i)
 {
     int len = 0;
-    while (isalpha(s[i+len]))
+    while (isalpha((unsigned char)s[i+len]))
         ++len;
     return len;
 }
@@ -82,9 +82,9 @@ static int get_ident(char *s, int i)
 static int get_value(char *s, int i)
 {
     int len = 0;
-    if ((s[i+len] == '-') || isalnum(s[i+len])) {
+    if ((s[i+len] == '-') || isalnum((unsigned char)s[i+len])) {
         ++len;
-        while (isalnum(s[i+len]))
+        while (isalnum((unsigned char)s[i+len]))
             ++len;
     }
     return len;
