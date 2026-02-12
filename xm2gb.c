@@ -383,7 +383,10 @@ static void convert_xm_pattern_to_gb(const struct xm_pattern *pattern, int chann
                     data[pos++] = RELEASE_COMMAND;
                     data[pos++] = END_ROW_COMMAND;
                     } else {
-                        data[pos++] = n->note + instr_map[lastinstr-1].transpose;
+                        int transpose = 0;
+                        if (lastinstr != 0xFF)
+                            transpose = instr_map[lastinstr-1].transpose;
+                        data[pos++] = n->note + transpose;
                         if (data[pos-1] >= 0x80)
                             data[pos-1] = 0;
                     }

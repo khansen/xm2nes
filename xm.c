@@ -44,7 +44,7 @@ static unsigned int read_uint(FILE *fp)
 static int xm_read_header(FILE *fp, struct xm_header *out)
 {
     fread(&out->id_text, 1, 17, fp);
-    if (!strncmp(out->id_text, "Extended module: ", 17))
+    if (strncmp(out->id_text, "Extended Module: ", 17) != 0)
         return XM_FORMAT_ERROR;
     fread(&out->module_name, 1, 20, fp);
     out->pad1a = read_byte(fp);
