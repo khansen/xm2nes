@@ -229,16 +229,29 @@ int main(int argc, char *argv[])
                     output_filename = &opt[7];
                 } else if (!strncmp("channels=", opt, 9)) {
                     const char *p = &opt[9];
+                    int bad = 0;
                     options.channels = 0;
-                    if (*p) {
+                    if (!*p)
+                        bad = 1;
+                    while (!bad && *p) {
+                        if (*p < '0' || *p > '3') {
+                            bad = 1;
+                            break;
+                        }
                         options.channels |= 1 << (*p - '0');
-                        while (*(++p)) {
-                            if (*(p++) != ',')
-                                break;
-                            if (*p)
-                                options.channels |= 1 << (*p - '0');
-			}
-		    }
+                        ++p;
+                        if (*p == ',') {
+                            ++p;
+                            if (!*p)
+                                bad = 1;
+                        } else if (*p != '\0') {
+                            bad = 1;
+                        }
+                    }
+                    if (bad) {
+                        fprintf(stderr, "xm2gb: invalid --channels value\n");
+                        return(-1);
+                    }
                     options.channels &= 0xF;
                 } else if (!strncmp("instruments-map=", opt, 16)) {
                     instruments_map_filename = &opt[16];
@@ -305,7 +318,14 @@ int main(int argc, char *argv[])
             }
             if (verbose)
                 fprintf(stdout, "Reading `%s'...\n", input_filename);
-            xm_read(in, &xm);
+            {
+                int ret = xm_read(in, &xm);
+                fclose(in);
+                if (ret != XM_NO_ERROR) {
+                    fprintf(stderr, "xm2gb: failed to read XM file (error %d)\n", ret);
+                    return(-1);
+                }
+            }
             if (verbose)
                 fprintf(stdout, "OK.\n");
         }
